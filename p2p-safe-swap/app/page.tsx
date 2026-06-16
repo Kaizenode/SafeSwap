@@ -1,9 +1,20 @@
 import Image from "next/image";
+import { DateGroupHeader } from "@/frontend/components/ui/date-group-header";
 
 export default function Home() {
   return (
     <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
       <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
+        {/* DateGroupHeader verification */}
+        <div className="w-full mb-8 border rounded-lg overflow-hidden">
+          <DateGroupHeader label="TODAY" />
+          <div className="px-4 py-3 text-sm text-zinc-600">Transaction A · $50.00</div>
+          <div className="px-4 py-3 text-sm text-zinc-600">Transaction B · $20.00</div>
+          <DateGroupHeader label="YESTERDAY" />
+          <div className="px-4 py-3 text-sm text-zinc-600">Transaction C · $75.00</div>
+          <DateGroupHeader label="JUNE" />
+          <div className="px-4 py-3 text-sm text-zinc-600">Transaction D · $10.00</div>
+        </div>
         <Image
           className="dark:invert"
           src="/next.svg"
