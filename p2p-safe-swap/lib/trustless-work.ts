@@ -6,7 +6,7 @@ function getHeaders() {
 
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
+    "x-api-key": apiKey,
   };
 }
 
@@ -28,38 +28,66 @@ async function request<T>(
 }
 
 export const trustlessWork = {
-  escrow: {
-    initialize: (body: Record<string, unknown>) =>
-      request("/escrow/initialize-escrow", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+  deploy: (body: Record<string, unknown>) =>
+    request("/deploy", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
-    getByContractId: (contractId: string) =>
-      request(`/escrow/get-escrow-by-contract-id?contractId=${contractId}`),
+  fund: (body: Record<string, unknown>) =>
+    request("/fund", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
-    fundEscrow: (body: Record<string, unknown>) =>
-      request("/escrow/fund-escrow", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+  changeMilestoneStatus: (body: Record<string, unknown>) =>
+    request("/change-milestone-status", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
-    completeEscrow: (body: Record<string, unknown>) =>
-      request("/escrow/complete-escrow", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+  approveMilestones: (body: Record<string, unknown>) =>
+    request("/approve-milestones", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
-    disputeEscrow: (body: Record<string, unknown>) =>
-      request("/escrow/dispute-escrow", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+  releaseFunds: (body: Record<string, unknown>) =>
+    request("/release-funds", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 
-    resolveDispute: (body: Record<string, unknown>) =>
-      request("/escrow/resolve-dispute", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
-  },
+  update: (body: Record<string, unknown>) =>
+    request("/update", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  dispute: (body: Record<string, unknown>) =>
+    request("/dispute", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  resolveDispute: (body: Record<string, unknown>) =>
+    request("/resolve-dispute", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  sendTransaction: (body: Record<string, unknown>) =>
+    request("/send-transaction", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  getEscrowsBySigner: (signer: string) =>
+    request(`/get-escrows-by-signer?signer=${signer}`),
+
+  getMultipleEscrowBalance: (body: Record<string, unknown>) =>
+    request("/get-multiple-escrow-balance", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
