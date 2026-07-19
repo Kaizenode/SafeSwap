@@ -28,4 +28,11 @@ export interface P2POrder {
   limits: OrderLimits;
   windowMinutes: number;
   paymentMethods: string[];
+  /** Amount in the traded asset that will be locked in escrow. */
+  escrowAmount?: number;
+  /** Trustline for the traded asset (e.g. USDT or USDC on Stellar). */
+  trustline?: { address: string; symbol: string };
+  /** Populated after the seller accepts and the escrow is deployed on-chain. */
+  escrowContractId?: string;
 }
+

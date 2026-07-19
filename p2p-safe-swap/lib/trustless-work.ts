@@ -10,6 +10,46 @@ export class TrustlessWorkApiError extends Error {
   }
 }
 
+export type EscrowRoles = {
+  approver: string;
+  serviceProvider: string;
+  platformAddress: string;
+  releaseSigner: string;
+  disputeResolver: string;
+  receiver: string;
+};
+
+export type EscrowTrustline = {
+  address: string;
+  symbol: string;
+};
+
+export interface EscrowMilestone {
+  description: string;
+  status?: string;
+  approved?: boolean;
+}
+
+export interface DeploySingleReleaseV2Request {
+  signer: string;
+  engagementId: string;
+  title: string;
+  description: string;
+  roles: EscrowRoles;
+  amount: number;
+  platformFee: number;
+  milestones: EscrowMilestone[];
+  trustline: EscrowTrustline;
+}
+
+export interface DeploySingleReleaseV2Response {
+  unsignedTransaction?: string;
+  contractId?: string;
+  status?: string;
+}
+
+// ─── Fund ────────────────────────────────────────────────────────────────────
+
 export interface FundSingleReleaseEscrowRequest {
   contractId: string;
   signer: string;
@@ -17,7 +57,8 @@ export interface FundSingleReleaseEscrowRequest {
 }
 
 export interface FundSingleReleaseEscrowResponse {
-  unsignedXdr: string;
+  unsignedTransaction?: string;
+  status?: string;
 }
 
 export interface SendTransactionRequest {
@@ -30,7 +71,7 @@ function getHeaders() {
 
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
+    "x-api-key": apiKey,
   };
 }
 
@@ -53,6 +94,12 @@ async function request<T>(
 
 export const trustlessWork = {
   escrow: {
+    deploySingleReleaseV2: (body: DeploySingleReleaseV2Request) =>
+      request<DeploySingleReleaseV2Response>("/deployer/single-release", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
     initialize: (body: Record<string, unknown>) =>
       request("/escrow/initialize-escrow", {
         method: "POST",
@@ -70,7 +117,7 @@ export const trustlessWork = {
 
     fundSingleReleaseV2: (body: FundSingleReleaseEscrowRequest) =>
       request<FundSingleReleaseEscrowResponse>(
-        "/escrow/single-release/v2/fund",
+        "/escrow/single-release/fund-escrow",
         {
           method: "POST",
           body: JSON.stringify(body),
@@ -98,7 +145,7 @@ export const trustlessWork = {
 
   stellar: {
     sendTransaction: (body: SendTransactionRequest) =>
-      request("/stellar/send-transaction", {
+      request("/helper/send-transaction", {
         method: "POST",
         body: JSON.stringify(body),
       }),

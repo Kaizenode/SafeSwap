@@ -56,14 +56,16 @@ export async function POST(request: NextRequest) {
       amount: body.amount,
     });
 
-    if (!data.unsignedXdr) {
+    if (!data.unsignedTransaction) {
       return NextResponse.json(
         { error: "Funding transaction was not returned by the escrow service" },
         { status: 502 }
       );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      unsignedXdr: data.unsignedTransaction,
+    });
   } catch (error) {
     return getErrorResponse(error);
   }
