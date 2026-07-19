@@ -62,4 +62,11 @@ export const trustlessWork = {
         body: JSON.stringify(body),
       }),
   },
+  helper: {
+    getMultipleEscrowBalance: (addresses: string[]) =>
+      request("/helper/get-multiple-escrow-balance", {
+        method: "POST",
+        body: JSON.stringify({ addresses }),
+      }),
+  },
 };
