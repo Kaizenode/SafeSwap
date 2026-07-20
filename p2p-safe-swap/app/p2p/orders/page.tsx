@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { P2POrderList } from "@/frontend/components/p2p";
 import type { OrderMode, P2POrder } from "@/frontend/components/p2p";
 
@@ -62,6 +63,7 @@ const BEST_PRICE = 0.9201;
 
 export default function OrdersPage() {
   const [mode, setMode] = useState<OrderMode>("buy");
+  const router = useRouter();
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
@@ -71,9 +73,10 @@ export default function OrdersPage() {
         mode={mode}
         onModeChange={setMode}
         onBuy={(orderId) => {
-          console.log("Order action:", { mode, orderId });
+          router.push(`/p2p/orders/${orderId}`);
         }}
       />
     </main>
   );
 }
+
