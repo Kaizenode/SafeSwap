@@ -40,7 +40,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <ThemeToggle className="fixed bottom-4 right-4 z-50" />
+          {/* Sit above the fixed BottomNav (h-16 + safe area) on app routes */}
+          <ThemeToggle className="fixed bottom-20 right-4 z-50" />
         </ThemeProvider>
       </body>
     </html>

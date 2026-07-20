@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ArrowLeft, SlidersHorizontal } from "lucide-react";
+import { Reveal } from "@/frontend/components/motion/reveal";
 import {
   TransactionList,
   type Transaction,
@@ -89,13 +91,13 @@ export default function TransactionsPage() {
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col bg-background px-4 py-6">
       <header className="mb-6 flex items-center justify-between">
-        <button
-          type="button"
+        <Link
+          href="/p2p/orders"
           aria-label="Volver"
-          className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+          className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="size-5" />
-        </button>
+        </Link>
 
         <h1 className="text-lg font-semibold text-foreground">Transacciones</h1>
 
@@ -108,13 +110,15 @@ export default function TransactionsPage() {
         </button>
       </header>
 
-      <TransactionList
-        transactions={mockTransactions}
-        searchQuery={searchQuery}
-        activeTab={activeTab}
-        onSearch={setSearchQuery}
-        onTabChange={(tab) => setActiveTab(tab as TransactionTab)}
-      />
+      <Reveal>
+        <TransactionList
+          transactions={mockTransactions}
+          searchQuery={searchQuery}
+          activeTab={activeTab}
+          onSearch={setSearchQuery}
+          onTabChange={(tab) => setActiveTab(tab as TransactionTab)}
+        />
+      </Reveal>
     </div>
   );
 }
