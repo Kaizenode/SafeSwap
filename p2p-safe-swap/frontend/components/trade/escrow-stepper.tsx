@@ -85,17 +85,17 @@ function StepIcon({ status }: { status: EscrowStepStatus }) {
 }
 
 const statusSrLabel: Record<EscrowStepStatus, string> = {
-  completed: "Completado",
-  current: "En curso",
-  pending: "Pendiente",
-  disputed: "En disputa",
+  completed: "Completed",
+  current: "In progress",
+  pending: "Pending",
+  disputed: "Disputed",
 };
 
 export function EscrowStepper({
   steps,
   className,
-  locale = "es-AR",
-  "aria-label": ariaLabel = "Etapas del escrow",
+  locale = "en-US",
+  "aria-label": ariaLabel = "Escrow stages",
 }: EscrowStepperProps) {
   return (
     <ol className={cn("flex flex-col", className)} aria-label={ariaLabel}>
