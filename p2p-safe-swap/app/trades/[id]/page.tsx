@@ -26,7 +26,7 @@ const MOCK_TRADE: MockTrade = {
   amount: 240,
   currency: "USDC",
   counterparty: {
-    name: "Lucía Méndez",
+    name: "Alice Johnson",
     address: "GA5X4B7ZQR3VWJN6UYQF2E8H9K1D3M2L7P0T4C6VXZWQERTY8UIOP12A",
   },
   contractId: "CDN3B7ZQR3VWJN6UYQF2E8H9K1D3M2L7P0T4C6V",
@@ -39,22 +39,22 @@ function buildMockSteps(): EscrowStep[] {
   return [
     {
       key: "initiated",
-      label: "Iniciado",
-      description: "Contrato de escrow creado en Stellar",
+      label: "Initiated",
+      description: "Escrow contract created on Stellar",
       status: "completed",
       timestamp: hoursAgo(26),
     },
     {
       key: "funded",
-      label: "Financiado",
-      description: "USDC bloqueados en el contrato",
+      label: "Funded",
+      description: "USDC locked in the contract",
       status: "current",
       timestamp: hoursAgo(3),
     },
     {
       key: "released",
-      label: "Liberado",
-      description: "A la espera de confirmación de la contraparte",
+      label: "Released",
+      description: "Awaiting counterparty confirmation",
       status: "pending",
     },
   ];
@@ -68,11 +68,11 @@ type PrimaryAction = {
 function getPrimaryAction(currentKey: string | undefined): PrimaryAction {
   switch (currentKey) {
     case "initiated":
-      return { label: "Financiar escrow", action: "fund" };
+      return { label: "Fund escrow", action: "fund" };
     case "funded":
-      return { label: "Liberar fondos", action: "release" };
+      return { label: "Release funds", action: "release" };
     default:
-      return { label: "Ver detalles", action: "noop" };
+      return { label: "View details", action: "noop" };
   }
 }
 
@@ -106,7 +106,7 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
       <header className="mb-6 flex items-center justify-between">
         <button
           type="button"
-          aria-label="Volver"
+          aria-label="Back"
           onClick={() => router.back()}
           className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
@@ -114,7 +114,7 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
         </button>
 
         <h1 className="text-lg font-semibold text-foreground">
-          Estado de la operación
+          Trade status
         </h1>
 
         <span className="size-10" aria-hidden />
@@ -122,7 +122,7 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
 
       <Reveal className="flex flex-col gap-6">
         <section
-          aria-label="Resumen de la operación"
+          aria-label="Trade summary"
           className="rounded-2xl border border-border bg-card p-5"
         >
           <div className="flex items-center gap-3">
@@ -140,7 +140,7 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
             </div>
             <div className="flex flex-col items-end">
               <span className="text-2xl font-bold tabular-nums text-foreground leading-none">
-                {MOCK_TRADE.amount.toLocaleString("es-AR")}
+                {MOCK_TRADE.amount.toLocaleString("en-US")}
               </span>
               <span className="mt-1 text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
                 {MOCK_TRADE.currency}
@@ -151,7 +151,7 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
           <div className="mt-4 flex items-center gap-2 rounded-xl bg-muted px-3 py-2">
             <ShieldCheck className="size-4 shrink-0 text-primary" aria-hidden />
             <span className="text-xs font-medium text-muted-foreground">
-              Contrato
+              Contract
             </span>
             <code
               className="ml-auto font-mono text-xs text-foreground"
@@ -170,7 +170,7 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
             id="escrow-stepper-heading"
             className="mb-4 text-sm font-semibold text-foreground"
           >
-            Progreso del escrow
+            Escrow progress
           </h2>
           <EscrowStepper steps={steps} />
         </section>
@@ -187,9 +187,9 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
           <Button
             variant="danger"
             size="lg"
-            label="Abrir disputa"
+            label="Open dispute"
             onClick={handleDispute}
-            aria-label="Abrir disputa"
+            aria-label="Open dispute"
             disabled={disputeDisabled}
             className="w-full"
           />
