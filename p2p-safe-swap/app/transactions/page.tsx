@@ -7,6 +7,7 @@ import {
   type Transaction,
   type TransactionTab,
 } from "@/frontend/components/ui/transaction-list";
+import { ConnectWalletButton } from "@/frontend/components/wallet";
 
 function createDate(daysAgo: number, hours: number, minutes: number): string {
   const date = new Date();
@@ -88,6 +89,10 @@ export default function TransactionsPage() {
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col bg-background px-4 py-6">
+      <div className="mb-4 flex justify-end">
+        <ConnectWalletButton />
+      </div>
+
       <header className="mb-6 flex items-center justify-between">
         <button
           type="button"

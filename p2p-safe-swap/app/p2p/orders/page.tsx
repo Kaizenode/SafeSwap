@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { P2POrderList } from "@/frontend/components/p2p";
 import type { OrderMode, P2POrder } from "@/frontend/components/p2p";
+import { ConnectWalletButton } from "@/frontend/components/wallet";
 
 const MOCK_ORDERS: P2POrder[] = [
   {
@@ -65,6 +66,10 @@ export default function OrdersPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+      <div className="flex justify-end px-4 pt-4">
+        <ConnectWalletButton />
+      </div>
+
       <P2POrderList
         orders={MOCK_ORDERS}
         bestPrice={BEST_PRICE}
