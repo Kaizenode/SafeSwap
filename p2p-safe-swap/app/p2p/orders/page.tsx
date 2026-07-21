@@ -170,7 +170,7 @@ export default function OrdersPage() {
         mode={mode}
         onModeChange={setMode}
         onBuy={(orderId) => {
-          console.log("Opening chat for order:", orderId);
+          console.log("Order action:", { mode, orderId });
           setSelectedOrderId(orderId);
         }}
       />
