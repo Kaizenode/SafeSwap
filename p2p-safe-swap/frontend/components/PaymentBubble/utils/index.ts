@@ -9,7 +9,8 @@ export const translations = {
     rejected:   "Rechazado",
     viewReceipt:"Ver recibo",
     reject:     "Rechazar",
-    pay:        "Pagar",
+    pay:        "Aceptar",
+    approvedReady: "approved, ready for release",
   },
   en: {
     sent:       "PAYMENT SENT",
@@ -19,7 +20,8 @@ export const translations = {
     rejected:   "Rejected",
     viewReceipt:"View receipt",
     reject:     "Reject",
-    pay:        "Pay",
+    pay:        "Accept",
+    approvedReady: "approved, ready for release",
   },
 } satisfies Record<PaymentBubbleLang, object>;
 

@@ -1,7 +1,7 @@
 export type PaymentBubbleLang    = "es" | "en";
 export type PaymentBubbleSide    = "sender" | "receiver";
 export type PaymentBubbleVariant = "sent" | "request";
-export type PaymentBubbleStatus  = "completed" | "pending" | "rejected";
+export type PaymentBubbleStatus  = "completed" | "pending" | "rejected" | "approved, ready for release" | "approved";
 
 export interface PaymentBubbleProperties {
   amount:    number;

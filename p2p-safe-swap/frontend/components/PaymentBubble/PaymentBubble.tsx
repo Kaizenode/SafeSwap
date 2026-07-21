@@ -57,7 +57,17 @@ export function PaymentBubble({
 
       <div className={`px-4 py-3 flex items-center justify-between ${isDark ? "bg-white/5" : "bg-muted"}`}>
 
-        {status === "completed" && <>
+        {status === "completed" && variant === "request" && (
+          <div className="flex items-center justify-between w-full">
+            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <Check size={14} />
+              {t.completed}
+            </span>
+            <Button variant="primary" size="sm" label={t.pay} onClick={onPay} />
+          </div>
+        )}
+
+        {status === "completed" && variant === "sent" && <>
           <span className={`flex items-center gap-1 text-xs ${isDark ? "text-chat-bubble-outgoing-foreground/70" : "text-muted-foreground"}`}>
             <Check size={14} />
             {t.completed}
@@ -67,6 +77,20 @@ export function PaymentBubble({
           </button>
         </>}
 
+        {(status === "approved, ready for release" || status === "approved") && (
+          <div className="flex items-center justify-between w-full">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              <Check size={14} />
+              {t.approvedReady || "approved, ready for release"}
+            </span>
+            {onViewReceipt && (
+              <button onClick={onViewReceipt} className={`flex items-center gap-1 text-xs transition-colors cursor-pointer ${isDark ? "text-chat-bubble-outgoing-foreground/70 hover:text-chat-bubble-outgoing-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                {t.viewReceipt} <ArrowRight size={12} />
+              </button>
+            )}
+          </div>
+        )}
+
         {status === "pending" && variant === "request" && <>
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="w-1.5 h-1.5 rounded-full bg-border" />
@@ -74,7 +98,7 @@ export function PaymentBubble({
           </span>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" label={t.reject} onClick={onReject} />
-            <Button variant="primary" size="sm" label={t.pay} onClick={onPay} />
+            <Button variant="primary" size="sm" label={t.pay} onClick={onPay} disabled />
           </div>
         </>}
 

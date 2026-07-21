@@ -27,6 +27,23 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+export interface ApproveMilestonesParams {
+  contractId: string;
+  approver: string;
+  milestoneIndexes?: number[];
+}
+
+export interface ApproveMilestonesResponse {
+  unsignedXdr: string;
+  [key: string]: unknown;
+}
+
+export interface SendTransactionResponse {
+  status?: string;
+  txHash?: string;
+  [key: string]: unknown;
+}
+
 export const trustlessWork = {
   escrow: {
     initialize: (body: Record<string, unknown>) =>
@@ -61,5 +78,69 @@ export const trustlessWork = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+
+    approveMilestones: (body: ApproveMilestonesParams) =>
+      request<ApproveMilestonesResponse>(
+        "/escrow/single-release/v2/approve-milestones",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            contractId: body.contractId,
+            approver: body.approver,
+            milestoneIndexes: body.milestoneIndexes ?? [0],
+          }),
+        }
+      ),
+
+    sendTransaction: (signedXdr: string) =>
+      request<SendTransactionResponse>("/escrow/send-transaction", {
+        method: "POST",
+        body: JSON.stringify({ signedXdr }),
+      }),
   },
 };
+
+export async function signAndSendTransaction(
+  unsignedXdr: string
+): Promise<SendTransactionResponse> {
+  let signedXdr: string = unsignedXdr;
+
+  if (typeof window !== "undefined") {
+    try {
+      const freighter = (window as any).freighter;
+      if (freighter && typeof freighter.signTransaction === "function") {
+        signedXdr = await freighter.signTransaction(unsignedXdr, {
+          network: "TESTNET",
+        });
+      } else if (
+        (window as any).stellar &&
+        typeof (window as any).stellar.signTransaction === "function"
+      ) {
+        signedXdr = await (window as any).stellar.signTransaction(unsignedXdr);
+      } else {
+        const freighterApi = await import("@stellar/freighter-api").catch(
+          () => null
+        );
+        if (
+          freighterApi &&
+          typeof freighterApi.signTransaction === "function"
+        ) {
+          const result = await freighterApi.signTransaction(unsignedXdr, {
+            networkPassphrase: "Test SDF Network ; November 2015",
+          });
+          if (typeof result === "string") {
+            signedXdr = result;
+          } else if (result && (result as any).signedTxXdr) {
+            signedXdr = (result as any).signedTxXdr;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Wallet signing prompt failed or cancelled:", err);
+      throw err;
+    }
+  }
+
+  return await trustlessWork.escrow.sendTransaction(signedXdr);
+}
+
