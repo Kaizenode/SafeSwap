@@ -96,6 +96,10 @@ export const trustlessWork = {
       request<SendTransactionResponse>("/escrow/send-transaction", {
         method: "POST",
         body: JSON.stringify({ signedXdr }),
+    changeMilestoneStatus: (body: Record<string, unknown>) =>
+      request("/escrow/single-release/v2/change-milestone-status", {
+        method: "POST",
+        body: JSON.stringify(body),
       }),
   },
 };
