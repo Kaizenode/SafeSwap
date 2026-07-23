@@ -61,5 +61,11 @@ export const trustlessWork = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+
+    changeMilestoneStatus: (body: Record<string, unknown>) =>
+      request("/escrow/single-release/v2/change-milestone-status", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
   },
 };
