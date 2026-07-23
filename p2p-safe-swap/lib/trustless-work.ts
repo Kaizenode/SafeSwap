@@ -1,12 +1,66 @@
 const BASE_URL = "https://dev.api.trustlesswork.com";
 
+export class TrustlessWorkApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly details: string
+  ) {
+    super(`Trustless Work API error ${status}: ${details}`);
+    this.name = "TrustlessWorkApiError";
+  }
+}
+
+export type EscrowRoles = {
+  approver: string;
+  serviceProvider: string;
+  platformAddress: string;
+  releaseSigner: string;
+  disputeResolver: string;
+  receiver: string;
+};
+
+export type EscrowTrustline = {
+  address: string;
+  symbol: string;
+};
+
+export interface EscrowMilestone {
+  description: string;
+  status?: string;
+  approved?: boolean;
+}
+
+export interface DeploySingleReleaseV2Request {
+  signer: string;
+  engagementId: string;
+  title: string;
+  description: string;
+  roles: EscrowRoles;
+  amount: number;
+  platformFee: number;
+  milestones: EscrowMilestone[];
+  trustline: EscrowTrustline;
+}
+
+export interface DeploySingleReleaseV2Response {
+  unsignedTransaction?: string;
+  contractId?: string;
+  status?: string;
+}
+
+// ─── Fund ────────────────────────────────────────────────────────────────────
+
+export interface SendTransactionRequest {
+  signedXdr: string;
+}
+
 function getHeaders() {
-  const apiKey = process.env.TRUSTLESS_WORK_API_KEY;
-  if (!apiKey) throw new Error("TRUSTLESS_WORK_API_KEY is not set");
+  const apiKey = process.env.TW_API_KEY;
+  if (!apiKey) throw new Error("TW_API_KEY is not set");
 
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
+    "x-api-key": apiKey,
   };
 }
 
@@ -21,7 +75,7 @@ async function request<T>(
 
   if (!res.ok) {
     const error = await res.text();
-    throw new Error(`Trustless Work API error ${res.status}: ${error}`);
+    throw new TrustlessWorkApiError(res.status, error);
   }
 
   return res.json() as Promise<T>;
@@ -29,6 +83,12 @@ async function request<T>(
 
 export const trustlessWork = {
   escrow: {
+    deploySingleReleaseV2: (body: DeploySingleReleaseV2Request) =>
+      request<DeploySingleReleaseV2Response>("/deployer/single-release", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
     initialize: (body: Record<string, unknown>) =>
       request("/escrow/initialize-escrow", {
         method: "POST",
@@ -64,6 +124,14 @@ export const trustlessWork = {
 
     changeMilestoneStatus: (body: Record<string, unknown>) =>
       request("/escrow/single-release/v2/change-milestone-status", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+  },
+
+  stellar: {
+    sendTransaction: (body: SendTransactionRequest) =>
+      request("/helper/send-transaction", {
         method: "POST",
         body: JSON.stringify(body),
       }),
