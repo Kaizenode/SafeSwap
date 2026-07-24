@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { P2POrderList } from "@/frontend/components/p2p";
 import { ChatScreen } from "@/frontend/components/chat/chat-screen";
 import type { OrderMode, P2POrder } from "@/frontend/components/p2p";
@@ -177,3 +178,4 @@ export default function OrdersPage() {
     </main>
   );
 }
+
