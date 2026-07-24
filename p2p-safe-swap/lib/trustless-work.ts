@@ -60,6 +60,12 @@ export const trustlessWork = {
         body: JSON.stringify(body),
       }),
 
+    update: (body: object) =>
+      request<{ unsignedXdr: string }>("/escrow/single-release/v2/update", {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
+
     getByContractId: (contractId: string) =>
       request(`/escrow/get-escrow-by-contract-id?contractId=${contractId}`),
 
