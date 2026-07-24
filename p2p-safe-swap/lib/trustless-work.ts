@@ -25,6 +25,24 @@ export interface SendTransactionRequest {
   signedXdr: string;
 }
 
+export interface GetEscrowsBySignerParams {
+  signer: string;
+  type?: "single-release" | "multi-release";
+  status?: string;
+  role?: string;
+  engagementId?: string;
+  isActive?: boolean;
+  orderBy?: "createdAt" | "updatedAt" | "amount";
+  orderDirection?: "asc" | "desc";
+  page?: number;
+  title?: string;
+  startDate?: string;
+  endDate?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  validateOnChain?: boolean;
+}
+
 function getHeaders() {
   const apiKey = process.env.TW_API_KEY;
   if (!apiKey) throw new Error("TW_API_KEY is not set");
@@ -115,5 +133,20 @@ export const trustlessWork = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+  },
+
+  helper: {
+    // GET /helper/get-escrows-by-signer returns a bare array of indexer
+    // escrows for the given signer, filtered/sorted by the query params.
+    getEscrowsBySigner: (params: GetEscrowsBySignerParams) => {
+      const search = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined || value === null || value === "") continue;
+        search.set(key, String(value));
+      }
+      return request<unknown[]>(
+        `/helper/get-escrows-by-signer?${search.toString()}`
+      );
+    },
   },
 };

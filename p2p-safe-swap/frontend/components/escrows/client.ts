@@ -1,51 +1,35 @@
 import type { GetEscrowsBySignerParams, IndexerEscrow } from "./types";
-import { deriveEscrowStatus } from "./status";
-import { MOCK_ESCROWS } from "./mock";
 
-// Single seam for fetching escrows. Today it filters/paginates the mock data
-// client-side; once #306 / PR #324 lands, replace the body of
-// `getEscrowsBySigner` with a real fetch to the proxied API route:
+// Single fetch seam for the escrow lists. Calls the server route
+// (/api/escrows) which proxies Trustless Work with the server-only key.
 //
-//   const res = await fetch(`/api/escrows?${new URLSearchParams(...)}`)
-//   return res.json()
-//
-// The real Trustless Work call MUST stay server-side (the x-api-key never
-// reaches the browser) — see #318 for the key handling. Hence the /api proxy.
+// For local mock data (before an API key / real signer is available), see
+// mock.ts + the MOCK_ESCROWS export — swap this body back if you need to demo
+// the UI offline.
 
+// The endpoint has no `total` in its response, and its server-side page size is
+// not documented. We treat a returned page of this length as "there may be
+// more" for the Next/Prev controls; reconcile once the real page size is known.
 const PAGE_SIZE = 10;
 
-/** Mirrors the endpoint: page-based, returns a bare array (no total/envelope). */
+/** Page-based; returns the bare array of indexer escrows for the signer. */
 export async function getEscrowsBySigner(
   params: GetEscrowsBySignerParams
 ): Promise<IndexerEscrow[]> {
-  const {
-    signer,
-    type,
-    status,
-    role,
-    engagementId,
-    isActive,
-    orderBy = "createdAt",
-    orderDirection = "desc",
-    page = 1,
-  } = params;
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    search.set(key, String(value));
+  }
 
-  let rows = MOCK_ESCROWS.filter((e) => e.signer === signer || e.user === signer);
+  const res = await fetch(`/api/escrows?${search.toString()}`);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+    const detail = body?.error ? String(body.error) : `status ${res.status}`;
+    throw new Error(`Failed to load escrows: ${detail}`);
+  }
 
-  if (type) rows = rows.filter((e) => e.type === type);
-  if (status) rows = rows.filter((e) => deriveEscrowStatus(e) === status);
-  if (engagementId) rows = rows.filter((e) => e.engagementId === engagementId);
-  if (typeof isActive === "boolean") rows = rows.filter((e) => e.isActive === isActive);
-  if (role) rows = rows.filter((e) => Boolean(e.roles[role]));
-
-  rows = [...rows].sort((a, b) => {
-    const av = orderBy === "amount" ? a.amount : Date.parse(a[orderBy]);
-    const bv = orderBy === "amount" ? b.amount : Date.parse(b[orderBy]);
-    return orderDirection === "asc" ? av - bv : bv - av;
-  });
-
-  const start = (page - 1) * PAGE_SIZE;
-  return rows.slice(start, start + PAGE_SIZE);
+  return (await res.json()) as IndexerEscrow[];
 }
 
 export const ESCROWS_PAGE_SIZE = PAGE_SIZE;
