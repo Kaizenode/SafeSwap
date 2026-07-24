@@ -50,6 +50,17 @@ export interface DeploySingleReleaseV2Response {
 
 // ─── Fund ────────────────────────────────────────────────────────────────────
 
+export interface FundSingleReleaseEscrowRequest {
+  contractId: string;
+  signer: string;
+  amount: string | number;
+}
+
+export interface FundSingleReleaseEscrowResponse {
+  unsignedTransaction?: string;
+  status?: string;
+}
+
 export interface SendTransactionRequest {
   signedXdr: string;
 }
@@ -95,6 +106,12 @@ export const trustlessWork = {
         body: JSON.stringify(body),
       }),
 
+    update: (body: object) =>
+      request<{ unsignedXdr: string }>("/escrow/single-release/v2/update", {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
+
     getByContractId: (contractId: string) =>
       request(`/escrow/get-escrow-by-contract-id?contractId=${contractId}`),
 
@@ -103,6 +120,15 @@ export const trustlessWork = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+
+    fundSingleReleaseV2: (body: FundSingleReleaseEscrowRequest) =>
+      request<FundSingleReleaseEscrowResponse>(
+        "/escrow/single-release/fund-escrow",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
 
     completeEscrow: (body: Record<string, unknown>) =>
       request("/escrow/complete-escrow", {
