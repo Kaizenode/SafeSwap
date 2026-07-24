@@ -76,11 +76,6 @@ function renderMessage(
             ? () => handlers.onViewReceipt?.(message.id)
             : undefined
         }
-        onMarkPaid={
-          !isRequest && isSelf
-            ? () => handlers.onMarkPaymentPaid?.(message.id, contractId, buyerAddress)
-            : undefined
-        }
       />
       <time
         dateTime={new Date(message.timestamp).toISOString()}
