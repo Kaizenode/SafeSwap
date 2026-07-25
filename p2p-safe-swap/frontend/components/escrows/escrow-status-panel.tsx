@@ -2,13 +2,26 @@
 
 import * as React from "react";
 import { useWallet } from "@/frontend/components/wallet";
+import { TabBar } from "@/frontend/components/ui/tab-bar";
 import { useEscrows } from "./use-escrows";
 import { deriveEscrowStatus } from "./status";
 import { EscrowStatusBadge } from "./status-badge";
+import type { EscrowStatus } from "./types";
 
 function shortAddress(address: string): string {
   return address.length <= 12 ? address : `${address.slice(0, 4)}…${address.slice(-4)}`;
 }
+
+// Status filter, wired to the endpoint `status` param. The enum values sent to
+// the API (pending/funded/disputed/released) are our assumed SingleRelease
+// status names; confirm them against the live API once a key is available.
+const STATUS_TABS: { label: string; value?: EscrowStatus }[] = [
+  { label: "Todos" },
+  { label: "Pendiente", value: "pending" },
+  { label: "Financiado", value: "funded" },
+  { label: "En disputa", value: "disputed" },
+  { label: "Liberado", value: "released" },
+];
 
 /**
  * Live status of the connected wallet's escrows, shown on the orders page.
@@ -21,14 +34,24 @@ function shortAddress(address: string): string {
  */
 export function EscrowStatusPanel() {
   const { address } = useWallet();
+  const [statusIndex, setStatusIndex] = React.useState(0);
+  const status = STATUS_TABS[statusIndex].value;
+
   const { escrows, isLoading, error, page, setPage, hasNextPage, hasPrevPage } =
-    useEscrows(address, { type: "single-release" });
+    useEscrows(address, { type: "single-release", status });
 
   if (!address) return null; // the connect button already prompts the user
 
   return (
     <section className="px-4 pt-4">
       <h2 className="mb-2 text-sm font-semibold text-foreground">Mis escrows</h2>
+
+      <TabBar
+        tabs={STATUS_TABS.map((tab) => tab.label)}
+        activeIndex={statusIndex}
+        onChange={setStatusIndex}
+        className="mb-3 w-full overflow-x-auto"
+      />
 
       {isLoading ? (
         <p className="py-6 text-center text-sm text-muted-foreground">Cargando escrows…</p>

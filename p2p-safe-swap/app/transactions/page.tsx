@@ -8,7 +8,19 @@ import {
   type TransactionTab,
 } from "@/frontend/components/ui/transaction-list";
 import { ConnectWalletButton, useWallet } from "@/frontend/components/wallet";
-import { useEscrows, escrowToTransaction } from "@/frontend/components/escrows";
+import {
+  useEscrows,
+  escrowToTransaction,
+  type Role,
+} from "@/frontend/components/escrows";
+
+// Maps the direction tabs to the endpoint `role` filter. "in" is the receiver,
+// "out" is the service provider (the payer into escrow in this P2P model).
+// "all" and "requests" apply no role filter.
+const TAB_ROLE: Partial<Record<TransactionTab, Role>> = {
+  in: "receiver",
+  out: "serviceProvider",
+};
 
 export default function TransactionsPage() {
   const { address } = useWallet();
@@ -16,7 +28,7 @@ export default function TransactionsPage() {
   const [activeTab, setActiveTab] = React.useState<TransactionTab>("all");
 
   const { escrows, isLoading, error, page, setPage, hasNextPage, hasPrevPage } =
-    useEscrows(address, { type: "single-release" });
+    useEscrows(address, { type: "single-release", role: TAB_ROLE[activeTab] });
 
   const transactions: Transaction[] = React.useMemo(
     () => (address ? escrows.map((e) => escrowToTransaction(e, address)) : []),
