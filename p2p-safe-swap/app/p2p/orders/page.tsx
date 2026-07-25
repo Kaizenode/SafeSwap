@@ -5,6 +5,7 @@ import { P2POrderList } from "@/frontend/components/p2p";
 import { ChatScreen } from "@/frontend/components/chat/chat-screen";
 import type { OrderMode, P2POrder } from "@/frontend/components/p2p";
 import { ConnectWalletButton } from "@/frontend/components/wallet";
+import { EscrowStatusPanel } from "@/frontend/components/escrows";
 import type { ChatMessage } from "@/frontend/components/chat/types";
 
 const MOCK_ORDERS: P2POrder[] = [
@@ -168,6 +169,8 @@ export default function OrdersPage() {
       <div className="flex justify-end px-4 pt-4">
         <ConnectWalletButton />
       </div>
+
+      <EscrowStatusPanel />
 
       <P2POrderList
         orders={MOCK_ORDERS}
