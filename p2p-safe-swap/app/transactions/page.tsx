@@ -7,85 +7,21 @@ import {
   type Transaction,
   type TransactionTab,
 } from "@/frontend/components/ui/transaction-list";
-import { ConnectWalletButton } from "@/frontend/components/wallet";
-
-function createDate(daysAgo: number, hours: number, minutes: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  date.setHours(hours, minutes, 0, 0);
-  return date.toISOString();
-}
-
-const mockTransactions: Transaction[] = [
-  {
-    id: "1",
-    address: "Lucía Méndez",
-    memo: "Café de ayer",
-    amount: 4.5,
-    date: createDate(0, 9, 12),
-    type: "out",
-  },
-  {
-    id: "2",
-    address: "Mateo Ruiz",
-    memo: "Cena split",
-    amount: 23,
-    date: createDate(0, 8, 45),
-    type: "in",
-  },
-  {
-    id: "3",
-    address: "Sofía Paz",
-    memo: "Taxi compartido",
-    amount: 12.3,
-    date: createDate(1, 19, 30),
-    type: "out",
-  },
-  {
-    id: "4",
-    address: "Diego Vera",
-    memo: "Alquiler parcial",
-    amount: 150,
-    date: createDate(1, 14, 15),
-    type: "in",
-  },
-  {
-    id: "5",
-    address: "Ana Cruz",
-    memo: "Regalo cumpleaños",
-    amount: 25,
-    date: createDate(18, 11, 0),
-    type: "out",
-  },
-  {
-    id: "6",
-    address: "Carlos Núñez",
-    memo: "Pago pendiente",
-    amount: 40,
-    date: createDate(20, 16, 20),
-    type: "request",
-  },
-  {
-    id: "7",
-    address: "Elena Torres",
-    memo: "Servicio freelance",
-    amount: 85,
-    date: createDate(35, 10, 30),
-    type: "in",
-  },
-  {
-    id: "8",
-    address: "Pablo Soto",
-    memo: "Compra grupal",
-    amount: 18.75,
-    date: createDate(42, 18, 45),
-    type: "out",
-  },
-];
+import { ConnectWalletButton, useWallet } from "@/frontend/components/wallet";
+import { useEscrows, escrowToTransaction } from "@/frontend/components/escrows";
 
 export default function TransactionsPage() {
+  const { address } = useWallet();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<TransactionTab>("all");
+
+  const { escrows, isLoading, error, page, setPage, hasNextPage, hasPrevPage } =
+    useEscrows(address, { type: "single-release" });
+
+  const transactions: Transaction[] = React.useMemo(
+    () => (address ? escrows.map((e) => escrowToTransaction(e, address)) : []),
+    [escrows, address]
+  );
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col bg-background px-4 py-6">
@@ -113,13 +49,51 @@ export default function TransactionsPage() {
         </button>
       </header>
 
-      <TransactionList
-        transactions={mockTransactions}
-        searchQuery={searchQuery}
-        activeTab={activeTab}
-        onSearch={setSearchQuery}
-        onTabChange={(tab) => setActiveTab(tab as TransactionTab)}
-      />
+      {!address ? (
+        <p className="py-16 text-center text-sm text-muted-foreground">
+          Conecta tu wallet para ver tus transacciones.
+        </p>
+      ) : isLoading ? (
+        <p className="py-16 text-center text-sm text-muted-foreground">
+          Cargando transacciones…
+        </p>
+      ) : error ? (
+        <p className="py-16 text-center text-sm text-red-500">
+          No se pudieron cargar las transacciones: {error.message}
+        </p>
+      ) : (
+        <>
+          <TransactionList
+            transactions={transactions}
+            searchQuery={searchQuery}
+            activeTab={activeTab}
+            onSearch={setSearchQuery}
+            onTabChange={(tab) => setActiveTab(tab as TransactionTab)}
+          />
+
+          {(hasPrevPage || hasNextPage) && (
+            <div className="mt-6 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setPage(page - 1)}
+                disabled={!hasPrevPage}
+                className="rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-muted-foreground">Página {page}</span>
+              <button
+                type="button"
+                onClick={() => setPage(page + 1)}
+                disabled={!hasNextPage}
+                className="rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
