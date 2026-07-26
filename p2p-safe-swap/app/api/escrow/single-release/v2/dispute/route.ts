@@ -3,8 +3,13 @@ import {
   DISPUTE_REASON_MAX_LENGTH,
   trustlessWork,
   TrustlessWorkApiError,
-  type DisputeSingleReleaseEscrowRequest,
 } from "@/lib/trustless-work";
+
+interface DisputeRequestBody {
+  contractId?: unknown;
+  signer?: unknown;
+  reason?: unknown;
+}
 
 function getErrorResponse(error: unknown) {
   if (error instanceof TrustlessWorkApiError) {
@@ -16,7 +21,7 @@ function getErrorResponse(error: unknown) {
 }
 
 export async function POST(request: NextRequest) {
-  let body: Partial<DisputeSingleReleaseEscrowRequest>;
+  let body: DisputeRequestBody;
 
   try {
     body = await request.json();
@@ -54,7 +59,6 @@ export async function POST(request: NextRequest) {
     const data = await trustlessWork.escrow.disputeSingleReleaseV2({
       contractId: body.contractId,
       signer: body.signer,
-      reason: body.reason,
     });
 
     if (!data.unsignedTransaction) {

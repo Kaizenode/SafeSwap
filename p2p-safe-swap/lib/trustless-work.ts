@@ -65,10 +65,14 @@ export interface FundSingleReleaseEscrowResponse {
 
 export const DISPUTE_REASON_MAX_LENGTH = 500;
 
+/**
+ * Trustless Work's dev API only accepts `contractId` and `signer` — `reason`
+ * is enforced at our API boundary and persisted client-side as a chat
+ * message. See #312 and the endpoint probe results.
+ */
 export interface DisputeSingleReleaseEscrowRequest {
   contractId: string;
   signer: string;
-  reason: string;
 }
 
 export interface DisputeSingleReleaseEscrowResponse {
@@ -147,7 +151,7 @@ export const trustlessWork = {
 
     disputeSingleReleaseV2: (body: DisputeSingleReleaseEscrowRequest) =>
       request<DisputeSingleReleaseEscrowResponse>(
-        "/escrow/single-release/v2/dispute",
+        "/escrow/single-release/dispute-escrow",
         {
           method: "POST",
           body: JSON.stringify(body),
