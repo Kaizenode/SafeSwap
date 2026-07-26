@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WalletBadge } from "@/frontend/components/ui/wallet-badge";
 import { truncateAddress } from "./utils";
@@ -10,6 +11,8 @@ export interface ChatHeaderProps {
   isOnline?: boolean;
   onBack?: () => void;
   onMore?: () => void;
+  onRaiseDispute?: () => void;
+  canRaiseDispute?: boolean;
   className?: string;
 }
 
@@ -18,9 +21,13 @@ export function ChatHeader({
   isOnline = true,
   onBack,
   onMore,
+  onRaiseDispute,
+  canRaiseDispute = true,
   className,
 }: ChatHeaderProps) {
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const truncated = truncateAddress(counterpartAddress);
 
   const handleCopy = useCallback(async () => {
@@ -34,6 +41,41 @@ export function ChatHeader({
     }
   }, [counterpartAddress]);
 
+  const hasMenu = Boolean(onRaiseDispute);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleClick(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleClick);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
+
+  const handleMoreClick = () => {
+    if (hasMenu) {
+      setMenuOpen((prev) => !prev);
+      return;
+    }
+    onMore?.();
+  };
+
+  const handleRaiseDispute = () => {
+    setMenuOpen(false);
+    onRaiseDispute?.();
+  };
+
   return (
     <header
       data-slot="chat-header"
@@ -46,7 +88,7 @@ export function ChatHeader({
         <button
           type="button"
           onClick={onBack}
-          aria-label="Volver"
+          aria-label="Back"
           className={cn(
             "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors",
             "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -85,14 +127,14 @@ export function ChatHeader({
             )}
             aria-hidden="true"
           />
-          {isOnline ? "Activa ahora" : "Desconectada"}
+          {isOnline ? "Active now" : "Offline"}
         </span>
       </div>
 
       <button
         type="button"
         onClick={handleCopy}
-        aria-label={copied ? "Dirección copiada" : "Copiar dirección"}
+        aria-label={copied ? "Address copied" : "Copy address"}
         aria-live="polite"
         className={cn(
           "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors",
@@ -132,27 +174,54 @@ export function ChatHeader({
         )}
       </button>
 
-      <button
-        type="button"
-        onClick={onMore}
-        aria-label="Más opciones"
-        className={cn(
-          "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors",
-          "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        )}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-hidden="true"
+      <div ref={menuRef} className="relative">
+        <button
+          type="button"
+          onClick={handleMoreClick}
+          aria-label="More options"
+          aria-haspopup={hasMenu ? "menu" : undefined}
+          aria-expanded={hasMenu ? menuOpen : undefined}
+          className={cn(
+            "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors",
+            "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          )}
         >
-          <circle cx="12" cy="5" r="1.6" />
-          <circle cx="12" cy="12" r="1.6" />
-          <circle cx="12" cy="19" r="1.6" />
-        </svg>
-      </button>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="5" r="1.6" />
+            <circle cx="12" cy="12" r="1.6" />
+            <circle cx="12" cy="19" r="1.6" />
+          </svg>
+        </button>
+
+        {hasMenu && menuOpen ? (
+          <div
+            role="menu"
+            aria-label="Chat actions"
+            className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-border bg-card shadow-lg"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleRaiseDispute}
+              disabled={!canRaiseDispute}
+              className={cn(
+                "flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-destructive transition-colors",
+                "hover:bg-destructive/10 focus-visible:bg-destructive/10 focus-visible:outline-none",
+                "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+              )}
+            >
+              <AlertTriangle size={16} aria-hidden="true" />
+              <span>Open dispute</span>
+            </button>
+          </div>
+        ) : null}
+      </div>
     </header>
   );
 }

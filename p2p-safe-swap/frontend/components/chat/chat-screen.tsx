@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentBubble } from "@/frontend/components/PaymentBubble/PaymentBubble";
 import { ChatHeader } from "./chat-header";
@@ -20,6 +21,9 @@ export interface ChatScreenProps {
   onViewReceipt?: (messageId: string) => void;
   onAcceptPaymentRequest?: (messageId: string) => void;
   onRejectPaymentRequest?: (messageId: string) => void;
+  onRaiseDispute?: () => void;
+  canRaiseDispute?: boolean;
+  isDisputed?: boolean;
   isOnline?: boolean;
   lang?: "es" | "en";
   className?: string;
@@ -34,7 +38,8 @@ interface PaymentHandlers {
 function renderMessage(
   message: ChatMessage,
   lang: "es" | "en",
-  handlers: PaymentHandlers
+  handlers: PaymentHandlers,
+  disablePaymentActions: boolean
 ) {
   if (message.type === "text") {
     return <ChatMessageBubble key={message.id} message={message} />;
@@ -53,30 +58,32 @@ function renderMessage(
         isSelf ? "items-end" : "items-start"
       )}
     >
-      <PaymentBubble
-        amount={message.amount}
-        currency={message.currency}
-        memo={message.memo}
-        variant={variant}
-        status={message.status}
-        side={side}
-        lang={lang}
-        onPay={
-          isRequest
-            ? () => handlers.onAcceptPaymentRequest?.(message.id)
-            : undefined
-        }
-        onReject={
-          isRequest
-            ? () => handlers.onRejectPaymentRequest?.(message.id)
-            : undefined
-        }
-        onViewReceipt={
-          !isRequest
-            ? () => handlers.onViewReceipt?.(message.id)
-            : undefined
-        }
-      />
+      <div className={cn(disablePaymentActions && "pointer-events-none opacity-60")}>
+        <PaymentBubble
+          amount={message.amount}
+          currency={message.currency}
+          memo={message.memo}
+          variant={variant}
+          status={message.status}
+          side={side}
+          lang={lang}
+          onPay={
+            isRequest && !disablePaymentActions
+              ? () => handlers.onAcceptPaymentRequest?.(message.id)
+              : undefined
+          }
+          onReject={
+            isRequest && !disablePaymentActions
+              ? () => handlers.onRejectPaymentRequest?.(message.id)
+              : undefined
+          }
+          onViewReceipt={
+            !isRequest
+              ? () => handlers.onViewReceipt?.(message.id)
+              : undefined
+          }
+        />
+      </div>
       <time
         dateTime={new Date(message.timestamp).toISOString()}
         className={cn(
@@ -100,8 +107,11 @@ export function ChatScreen({
   onViewReceipt,
   onAcceptPaymentRequest,
   onRejectPaymentRequest,
+  onRaiseDispute,
+  canRaiseDispute = true,
+  isDisputed = false,
   isOnline,
-  lang = "es",
+  lang = "en",
   className,
 }: ChatScreenProps) {
   const groups = useMemo(() => groupMessagesByDay(messages), [messages]);
@@ -119,6 +129,8 @@ export function ChatScreen({
     onRejectPaymentRequest,
   };
 
+  const disputeBannerLabel = "Escrow in dispute — payment actions are disabled";
+
   return (
     <div
       data-slot="chat-screen"
@@ -129,21 +141,33 @@ export function ChatScreen({
         isOnline={isOnline}
         onBack={onBack}
         onMore={onMore}
+        onRaiseDispute={isDisputed ? undefined : onRaiseDispute}
+        canRaiseDispute={canRaiseDispute}
       />
+
+      {isDisputed ? (
+        <div
+          role="status"
+          className="flex items-center gap-2 border-b border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive"
+        >
+          <AlertTriangle size={14} aria-hidden="true" />
+          <span>{disputeBannerLabel}</span>
+        </div>
+      ) : null}
 
       <div
         ref={scrollRef}
         role="log"
         aria-live="polite"
-        aria-label="Mensajes de la conversación"
+        aria-label="Conversation messages"
         className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4"
       >
         {groups.length === 0 ? (
           <div className="m-auto flex flex-col items-center gap-1 text-center text-sm text-muted-foreground">
             <span className="text-base font-medium text-foreground">
-              Sin mensajes aún
+              No messages yet
             </span>
-            <span>Envía el primer mensaje o un pago para empezar.</span>
+            <span>Send the first message or a payment to get started.</span>
           </div>
         ) : (
           groups.map((group) => (
@@ -154,7 +178,7 @@ export function ChatScreen({
             >
               <DateSeparator label={group.dayLabel} />
               {group.messages.map((message) =>
-                renderMessage(message, lang, handlers)
+                renderMessage(message, lang, handlers, isDisputed)
               )}
             </section>
           ))
@@ -164,6 +188,7 @@ export function ChatScreen({
       <ChatInputBar
         onSendMessage={onSendMessage}
         onSendPayment={onSendPayment}
+        disabled={isDisputed}
       />
     </div>
   );
