@@ -61,6 +61,21 @@ export interface FundSingleReleaseEscrowResponse {
   status?: string;
 }
 
+// ─── Dispute ─────────────────────────────────────────────────────────────────
+
+export const DISPUTE_REASON_MAX_LENGTH = 500;
+
+export interface DisputeSingleReleaseEscrowRequest {
+  contractId: string;
+  signer: string;
+  reason: string;
+}
+
+export interface DisputeSingleReleaseEscrowResponse {
+  unsignedTransaction?: string;
+  status?: string;
+}
+
 export interface SendTransactionRequest {
   signedXdr: string;
 }
@@ -124,6 +139,15 @@ export const trustlessWork = {
     fundSingleReleaseV2: (body: FundSingleReleaseEscrowRequest) =>
       request<FundSingleReleaseEscrowResponse>(
         "/escrow/single-release/fund-escrow",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    disputeSingleReleaseV2: (body: DisputeSingleReleaseEscrowRequest) =>
+      request<DisputeSingleReleaseEscrowResponse>(
+        "/escrow/single-release/v2/dispute",
         {
           method: "POST",
           body: JSON.stringify(body),
