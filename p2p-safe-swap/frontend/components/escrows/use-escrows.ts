@@ -12,20 +12,13 @@ export type UseEscrowsResult = {
   error: Error | null;
   page: number;
   setPage: (page: number) => void;
-  /** True when a full page came back — there may be more. No total is returned. */
   hasNextPage: boolean;
   hasPrevPage: boolean;
 };
 
-/**
- * Fetches the connected wallet's escrows with filtering + page-based pagination.
- * A null/empty `signer` (no wallet connected yet — see the unowned
- * wallet-connect gap) yields an empty, non-loading result.
- *
- * State is only ever set from async callbacks, and `page`/`isLoading` are
- * derived — no synchronous setState in effects, no ref mutation in render
- * (both banned by the repo's React Compiler lint rules).
- */
+// A null/empty signer yields an empty, non-loading result. State is only set
+// from async callbacks and page/isLoading are derived, to satisfy the repo's
+// React Compiler lint rules (no sync setState in effects, no ref writes in render).
 export function useEscrows(
   signer: string | null | undefined,
   filters: Filters = {}
@@ -33,8 +26,7 @@ export function useEscrows(
   const filtersKey = JSON.stringify(filters);
   const queryKey = `${signer ?? ""}::${filtersKey}`;
 
-  // Page is scoped to a query identity: when signer/filters change, the stored
-  // key no longer matches and `page` derives back to 1 — no reset effect needed.
+  // Page is scoped to the query identity, so it resets to 1 when it changes.
   const [pageState, setPageState] = React.useState({ key: queryKey, page: 1 });
   const page = pageState.key === queryKey ? pageState.page : 1;
   const setPage = React.useCallback(
@@ -44,8 +36,7 @@ export function useEscrows(
 
   const [escrows, setEscrows] = React.useState<IndexerEscrow[]>([]);
   const [error, setError] = React.useState<Error | null>(null);
-  // Identity of the last request that finished; compare with the current
-  // request identity to derive `isLoading` without a synchronous setState.
+  // Identity of the last finished request; compared with requestKey for isLoading.
   const [loadedKey, setLoadedKey] = React.useState<string | null>(null);
 
   const requestKey = `${queryKey}::${page}`;

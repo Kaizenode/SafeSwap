@@ -1,45 +1,55 @@
-import type { EscrowStatus, IndexerEscrow, Role } from "./types";
+import type { EscrowStatus, Flags, IndexerEscrow, Role } from "./types";
 
-/**
- * Derive the UI status from an escrow's on-chain flags + balance.
- *
- * The indexer does NOT return a single `status` string, so we compute it.
- * Precedence (provisional — reconcile against the real `SingleReleaseEscrowStatus`
- * enum once the #306/#324 client lands):
- *   released  → funds have been released to the receiver
- *   disputed  → an open, unresolved dispute
- *   funded    → USDC is locked in the contract but not yet released
- *   pending   → deployed but not yet funded
- */
+// Flags may be top-level (single-release) or per milestone (multi-release).
+function collectFlags(escrow: IndexerEscrow): Flags[] {
+  const sets: Flags[] = [];
+  if (escrow.flags) sets.push(escrow.flags);
+  for (const milestone of escrow.milestones ?? []) {
+    if (milestone.flags) sets.push(milestone.flags);
+  }
+  return sets;
+}
+
+// Precedence: disputed > released > funded (balance > 0) > pending.
 export function deriveEscrowStatus(escrow: IndexerEscrow): EscrowStatus {
-  const flags = escrow.flags ?? {};
+  const flagSets = collectFlags(escrow);
+  const milestones = escrow.milestones ?? [];
 
-  if (flags.released) return "released";
-  if (flags.disputed && !flags.resolved) return "disputed";
+  if (flagSets.some((f) => f.disputed && !f.resolved)) return "disputed";
+
+  const topReleased = Boolean(escrow.flags?.released);
+  const allMilestonesReleased =
+    milestones.length > 0 && milestones.every((m) => m.flags?.released);
+  if (topReleased || allMilestonesReleased) return "released";
+
   if ((escrow.balance ?? 0) > 0) return "funded";
   return "pending";
 }
 
-/**
- * Which role the connected wallet plays in a given escrow, if any.
- * Used to decide transaction direction (in/out) on the transactions list.
- */
-export function roleOfSigner(
-  escrow: IndexerEscrow,
-  signer: string
-): Role | null {
-  const { roles } = escrow;
-  const match = (Object.keys(roles) as Role[]).find(
-    (role) => roles[role]?.toLowerCase() === signer.toLowerCase()
+// Receiver may be in roles or per milestone.
+function receiverAddresses(escrow: IndexerEscrow): string[] {
+  const addrs: string[] = [];
+  if (escrow.roles.receiver) addrs.push(escrow.roles.receiver);
+  for (const milestone of escrow.milestones ?? []) {
+    if (milestone.receiver) addrs.push(milestone.receiver);
+  }
+  return addrs;
+}
+
+// Which role the connected wallet plays, if any.
+export function roleOfSigner(escrow: IndexerEscrow, signer: string): Role | null {
+  const target = signer.toLowerCase();
+
+  if (receiverAddresses(escrow).some((a) => a.toLowerCase() === target)) {
+    return "receiver";
+  }
+
+  const match = (Object.keys(escrow.roles) as Role[]).find(
+    (role) => escrow.roles[role]?.toLowerCase() === target
   );
   return match ?? null;
 }
 
-/**
- * Direction of funds relative to the connected wallet.
- * The receiver is money-in; every other funding role (approver / service
- * provider paying into escrow) is money-out.
- */
 export function directionForSigner(
   escrow: IndexerEscrow,
   signer: string

@@ -1,12 +1,7 @@
-// Types for the Trustless Work indexer endpoint
-//   GET /helper/get-escrows-by-signer  →  GetEscrowsFromIndexerResponse[]
-//
-// Sourced from the official Trustless Work docs (single-release / v1 shape):
-//   https://docs.trustlesswork.com/trustless-work/introduction/developer-resources/types
-//
-// NOTE: These live here (not in lib/trustless-work.ts) on purpose — the API
-// client is being rewritten under issue #306 / PR #324. Keeping the feature
-// types local avoids a collision; move/re-export once that lands.
+// Types for GET /helper/get-escrows-by-signer.
+// Shapes match the live API, which differs from the docs: on multi-release
+// records `flags`, `amount`, and `receiver` live per milestone (top-level is
+// null/absent), and timestamps are Firestore objects. Helpers tolerate both.
 
 export type EscrowType = "single-release" | "multi-release";
 
@@ -18,21 +13,7 @@ export type Role =
   | "disputeResolver"
   | "receiver";
 
-export type Roles = {
-  approver: string;
-  serviceProvider: string;
-  platformAddress: string;
-  releaseSigner: string;
-  disputeResolver: string;
-  receiver: string;
-};
-
-export type SingleReleaseMilestone = {
-  description: string;
-  status?: string;
-  evidence?: string;
-  approved?: boolean;
-};
+export type Roles = Partial<Record<Role, string>>;
 
 export type Flags = {
   disputed?: boolean;
@@ -41,54 +22,56 @@ export type Flags = {
   approved?: boolean;
 };
 
+export type Milestone = {
+  description: string;
+  amount?: number;
+  status?: string;
+  evidence?: string;
+  approved?: boolean;
+  flags?: Flags;
+  receiver?: string;
+};
+
+export type SingleReleaseMilestone = Milestone;
+
 export type Trustline = {
   symbol: string;
   address: string;
+  contractId?: string;
   name?: string;
 };
 
-/**
- * One escrow record as returned by the indexer.
- * `createdAt` / `updatedAt` are typed `Date` in the docs but arrive as ISO
- * strings over the wire — treat them as strings and parse when needed.
- */
+export type FirestoreTimestamp = { _seconds: number; _nanoseconds: number };
+export type Timestamp = string | FirestoreTimestamp;
+
 export type IndexerEscrow = {
   signer?: string;
   contractId?: string;
+  contractBaseId?: string;
   engagementId: string;
   title: string;
   description: string;
   roles: Roles;
-  amount: number;
-  platformFee: number;
+  amount?: number | null;
+  platformFee?: number;
   balance?: number;
-  milestones: SingleReleaseMilestone[];
-  flags?: Flags;
+  milestones: Milestone[];
+  flags?: Flags | null;
   trustline: Trustline;
   receiverMemo?: number;
   disputeStartedBy?: string;
   fundedBy?: string;
   isActive?: boolean;
-  approverFunds?: string;
-  receiverFunds?: string;
-  user: string;
-  createdAt: string;
-  updatedAt: string;
+  user?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
   type: EscrowType;
 };
 
-/**
- * Derived, UI-facing escrow status. NOT a field on the response — computed
- * from `flags` + `balance` (see status.ts). Mirrors the four states the
- * acceptance criteria call for.
- */
+// Derived from flags + balance (see status.ts); not a field on the response.
 export type EscrowStatus = "pending" | "funded" | "disputed" | "released";
 
-/**
- * Query params for GET /helper/get-escrows-by-signer.
- * `signer` is required (the connected wallet); everything else filters/sorts.
- * Pagination is page-based (no cursor, no total in the response).
- */
+// `signer` required; the rest filter/sort. Pagination is page-based.
 export type GetEscrowsBySignerParams = {
   signer: string;
   type?: EscrowType;

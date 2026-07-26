@@ -5,11 +5,8 @@ import {
   type GetEscrowsBySignerParams,
 } from "@/lib/trustless-work";
 
-// GET /api/escrows?signer=...&type=single-release&status=...&page=...
-//
-// Server-side proxy for the Trustless Work `get-escrows-by-signer` endpoint.
-// The call runs here so the x-api-key stays on the server and never reaches
-// the browser. Returns the bare array of indexer escrows.
+// GET /api/escrows?signer=...&type=single-release&page=...
+// Server-side proxy for get-escrows-by-signer, keeping the x-api-key off the browser.
 export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
 

@@ -10,10 +10,7 @@ function truncate(address: string): string {
   return address.length <= 12 ? address : `${address.slice(0, 4)}…${address.slice(-4)}`;
 }
 
-/**
- * Connect / connected-account control. Opens the Stellar Wallets Kit modal when
- * disconnected; shows the account badge + a disconnect action when connected.
- */
+// Opens the wallet modal when disconnected; shows the account + disconnect when connected.
 export function ConnectWalletButton({ className }: { className?: string }) {
   const { address, status, error, connect, disconnect } = useWallet();
 

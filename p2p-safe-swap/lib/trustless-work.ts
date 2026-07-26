@@ -136,8 +136,7 @@ export const trustlessWork = {
   },
 
   helper: {
-    // GET /helper/get-escrows-by-signer returns a bare array of indexer
-    // escrows for the given signer, filtered/sorted by the query params.
+    // Returns a bare array of indexer escrows for the signer.
     getEscrowsBySigner: (params: GetEscrowsBySignerParams) => {
       const search = new URLSearchParams();
       for (const [key, value] of Object.entries(params)) {

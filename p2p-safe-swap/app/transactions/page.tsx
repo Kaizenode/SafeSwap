@@ -8,27 +8,17 @@ import {
   type TransactionTab,
 } from "@/frontend/components/ui/transaction-list";
 import { ConnectWalletButton, useWallet } from "@/frontend/components/wallet";
-import {
-  useEscrows,
-  escrowToTransaction,
-  type Role,
-} from "@/frontend/components/escrows";
-
-// Maps the direction tabs to the endpoint `role` filter. "in" is the receiver,
-// "out" is the service provider (the payer into escrow in this P2P model).
-// "all" and "requests" apply no role filter.
-const TAB_ROLE: Partial<Record<TransactionTab, Role>> = {
-  in: "receiver",
-  out: "serviceProvider",
-};
+import { useEscrows, escrowToTransaction } from "@/frontend/components/escrows";
 
 export default function TransactionsPage() {
   const { address } = useWallet();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<TransactionTab>("all");
 
+  // Direction is filtered client-side by TransactionList; the endpoint `role`
+  // filter is unused because the live API 400s on it.
   const { escrows, isLoading, error, page, setPage, hasNextPage, hasPrevPage } =
-    useEscrows(address, { type: "single-release", role: TAB_ROLE[activeTab] });
+    useEscrows(address, { type: "single-release" });
 
   const transactions: Transaction[] = React.useMemo(
     () => (address ? escrows.map((e) => escrowToTransaction(e, address)) : []),

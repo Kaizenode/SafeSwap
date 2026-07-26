@@ -5,4 +5,3 @@ export { getEscrowsBySigner, ESCROWS_PAGE_SIZE } from "./client";
 export { useEscrows, type UseEscrowsResult } from "./use-escrows";
 export { EscrowStatusBadge } from "./status-badge";
 export { EscrowStatusPanel } from "./escrow-status-panel";
-export { MOCK_ESCROWS, MOCK_SIGNER } from "./mock";

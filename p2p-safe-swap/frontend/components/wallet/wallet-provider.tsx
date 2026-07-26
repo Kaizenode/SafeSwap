@@ -5,7 +5,7 @@ import * as React from "react";
 export type WalletStatus = "idle" | "connecting" | "connected";
 
 export type WalletContextValue = {
-  /** Connected wallet public key — the `signer` for escrow queries. */
+  // Connected wallet public key — the `signer` for escrow queries.
   address: string | null;
   status: WalletStatus;
   error: string | null;
@@ -20,14 +20,9 @@ function errorMessage(e: unknown): string {
   return String(e);
 }
 
-/**
- * App-wide wallet connection state, backed by Stellar Wallets Kit.
- *
- * The kit is loaded via dynamic import inside effects/handlers so its
- * browser-only code never runs during SSR. On mount we subscribe to kit state
- * updates, which also restores any persisted session (localStorage) — so a
- * returning user appears connected without re-opening the modal.
- */
+// App-wide wallet state. The kit is loaded via dynamic import in effects/handlers
+// so its browser-only code never runs during SSR. Subscribing on mount also
+// restores any persisted session.
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = React.useState<string | null>(null);
   const [isConnecting, setIsConnecting] = React.useState(false);

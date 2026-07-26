@@ -4,17 +4,12 @@ import * as React from "react";
 import { useWallet } from "@/frontend/components/wallet";
 import { TabBar } from "@/frontend/components/ui/tab-bar";
 import { useEscrows } from "./use-escrows";
-import { deriveEscrowStatus } from "./status";
+import { escrowToOrder } from "./adapters";
 import { EscrowStatusBadge } from "./status-badge";
 import type { EscrowStatus } from "./types";
 
-function shortAddress(address: string): string {
-  return address.length <= 12 ? address : `${address.slice(0, 4)}…${address.slice(-4)}`;
-}
-
-// Status filter, wired to the endpoint `status` param. The enum values sent to
-// the API (pending/funded/disputed/released) are our assumed SingleRelease
-// status names; confirm them against the live API once a key is available.
+// Filtering is client-side on the derived status: the live API 400s on filter
+// params like `role`, so we do not rely on a server-side `status` filter.
 const STATUS_TABS: { label: string; value?: EscrowStatus }[] = [
   { label: "Todos" },
   { label: "Pendiente", value: "pending" },
@@ -23,22 +18,21 @@ const STATUS_TABS: { label: string; value?: EscrowStatus }[] = [
   { label: "Liberado", value: "released" },
 ];
 
-/**
- * Live status of the connected wallet's escrows, shown on the orders page.
- *
- * This is additive: it sits above the marketplace order list and does not
- * replace it. The marketplace browse + trade/chat flow keeps working; this
- * panel is what satisfies the "show live escrow status per order" criterion of
- * issue #316. How the marketplace list and a user's escrows should ultimately
- * relate is a product decision left for the maintainer.
- */
+// Additive panel above the marketplace list: shows the connected wallet's
+// escrows with a status badge (issue #316), without touching the marketplace.
 export function EscrowStatusPanel() {
   const { address } = useWallet();
   const [statusIndex, setStatusIndex] = React.useState(0);
   const status = STATUS_TABS[statusIndex].value;
 
   const { escrows, isLoading, error, page, setPage, hasNextPage, hasPrevPage } =
-    useEscrows(address, { type: "single-release", status });
+    useEscrows(address, { type: "single-release" });
+
+  const orders = React.useMemo(
+    () => (address ? escrows.map((e) => escrowToOrder(e, address)) : []),
+    [escrows, address]
+  );
+  const shown = status ? orders.filter((o) => o.status === status) : orders;
 
   if (!address) return null; // the connect button already prompts the user
 
@@ -59,34 +53,35 @@ export function EscrowStatusPanel() {
         <p className="py-6 text-center text-sm text-red-500">
           No se pudieron cargar los escrows: {error.message}
         </p>
-      ) : escrows.length === 0 ? (
+      ) : orders.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
           Aún no tienes escrows.
+        </p>
+      ) : shown.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          No hay escrows con este estado.
         </p>
       ) : (
         <>
           <ul className="overflow-hidden rounded-2xl border border-border bg-card">
-            {escrows.map((escrow, index) => {
-              const counterparty = escrow.roles.receiver;
-              return (
-                <li
-                  key={escrow.contractId ?? escrow.engagementId}
-                  className={index > 0 ? "border-t border-border" : undefined}
-                >
-                  <div className="flex items-center justify-between gap-3 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {escrow.title || shortAddress(counterparty)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {escrow.amount} {escrow.trustline.symbol}
-                      </p>
-                    </div>
-                    <EscrowStatusBadge status={deriveEscrowStatus(escrow)} />
+            {shown.map((order, index) => (
+              <li
+                key={order.id}
+                className={index > 0 ? "border-t border-border" : undefined}
+              >
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {order.user.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {order.limits.max} {order.currencyPair.base}
+                    </p>
                   </div>
-                </li>
-              );
-            })}
+                  <EscrowStatusBadge status={order.status} />
+                </div>
+              </li>
+            ))}
           </ul>
 
           {(hasPrevPage || hasNextPage) && (

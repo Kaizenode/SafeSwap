@@ -1,18 +1,11 @@
 import type { GetEscrowsBySignerParams, IndexerEscrow } from "./types";
 
-// Single fetch seam for the escrow lists. Calls the server route
-// (/api/escrows) which proxies Trustless Work with the server-only key.
-//
-// For local mock data (before an API key / real signer is available), see
-// mock.ts + the MOCK_ESCROWS export — swap this body back if you need to demo
-// the UI offline.
+// Fetch seam for the escrow lists: calls /api/escrows, which proxies Trustless
+// Work with the server-only key.
 
-// The endpoint has no `total` in its response, and its server-side page size is
-// not documented. We treat a returned page of this length as "there may be
-// more" for the Next/Prev controls; reconcile once the real page size is known.
+// The response has no total; we treat a full page as "there may be more".
 const PAGE_SIZE = 10;
 
-/** Page-based; returns the bare array of indexer escrows for the signer. */
 export async function getEscrowsBySigner(
   params: GetEscrowsBySignerParams
 ): Promise<IndexerEscrow[]> {
