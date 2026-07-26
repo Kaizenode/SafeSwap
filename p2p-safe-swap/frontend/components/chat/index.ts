@@ -8,6 +8,8 @@ export { ChatScreen } from "./chat-screen";
 export type { ChatScreenProps } from "./chat-screen";
 export { DateSeparator } from "./date-separator";
 export type { DateSeparatorProps } from "./date-separator";
+export { RaiseDisputeDialog } from "./raise-dispute-dialog";
+export type { RaiseDisputeDialogProps } from "./raise-dispute-dialog";
 export type {
   ChatMessage,
   ChatMessageBase,
