@@ -97,6 +97,7 @@ export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const counterpartAddress = `0x${params.id}`;
 
+  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [isDisputeDialogOpen, setDisputeDialogOpen] = useState(false);
   const [disputeStatus, setDisputeStatus] = useState<EscrowDisputeStatus>("idle");
   const [disputeError, setDisputeError] = useState<string | null>(null);
@@ -151,6 +152,16 @@ export default function ChatPage() {
           setDisputeStatus
         );
 
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-dispute-${Date.now()}`,
+            type: "text",
+            text: `[Dispute opened] ${reason.trim()}`,
+            author: "self",
+            timestamp: new Date(),
+          },
+        ]);
         setIsDisputed(true);
         setDisputeDialogOpen(false);
       } catch (error) {
@@ -173,7 +184,7 @@ export default function ChatPage() {
       <Reveal className="flex flex-1 flex-col">
         <ChatScreen
           counterpartAddress={counterpartAddress}
-          messages={mockMessages}
+          messages={messages}
           onSendMessage={handleSendMessage}
           onSendPayment={handleSendPayment}
           onViewReceipt={handleViewReceipt}

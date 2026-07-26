@@ -222,6 +222,16 @@ export default function OrdersPage() {
           setDisputeStatus
         );
 
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-dispute-${Date.now()}`,
+            type: "text",
+            text: `[Dispute opened] ${reason.trim()}`,
+            author: "self",
+            timestamp: new Date(),
+          },
+        ]);
         setDisputedOrders((prev) => ({ ...prev, [order.id]: true }));
         setDisputeDialogOrderId(null);
       } catch (error) {
