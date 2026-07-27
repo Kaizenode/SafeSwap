@@ -17,7 +17,6 @@ export interface ChatScreenProps {
   onSendMessage: (text: string) => void;
   onSendPayment: () => void;
   onBack?: () => void;
-  onMore?: () => void;
   onViewReceipt?: (messageId: string) => void;
   onAcceptPaymentRequest?: (messageId: string) => void;
   onRejectPaymentRequest?: (messageId: string) => void;
@@ -103,7 +102,6 @@ export function ChatScreen({
   onSendMessage,
   onSendPayment,
   onBack,
-  onMore,
   onViewReceipt,
   onAcceptPaymentRequest,
   onRejectPaymentRequest,
@@ -140,7 +138,6 @@ export function ChatScreen({
         counterpartAddress={counterpartAddress}
         isOnline={isOnline}
         onBack={onBack}
-        onMore={onMore}
         onRaiseDispute={isDisputed ? undefined : onRaiseDispute}
         canRaiseDispute={canRaiseDispute}
       />
