@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { P2POrderList } from "@/frontend/components/p2p";
 import { ChatScreen } from "@/frontend/components/chat/chat-screen";
+import { RaiseDisputeDialog } from "@/frontend/components/chat";
 import type { OrderMode, P2POrder } from "@/frontend/components/p2p";
 import type { ChatMessage } from "@/frontend/components/chat/types";
 import {
   deployEscrow,
   type EscrowDeploymentStatus,
 } from "@/frontend/lib/escrow-deployment";
+import {
+  EscrowDisputeError,
+  raiseEscrowDispute,
+  type EscrowDisputeStatus,
+} from "@/frontend/lib/escrow-dispute";
 
 const USDC_TRUSTLINE = {
   address: "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
@@ -16,6 +22,9 @@ const USDC_TRUSTLINE = {
 };
 
 const PLATFORM_FEE = 1;
+
+const PLACEHOLDER_BUYER_ADDRESS = "PLACEHOLDER_BUYER_STELLAR_ADDRESS";
+const PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS = "PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS";
 
 async function mockSignTransaction(unsignedXdr: string): Promise<string> {
   console.warn(
@@ -125,6 +134,10 @@ export default function OrdersPage() {
   >({});
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
+  const [disputedOrders, setDisputedOrders] = useState<Record<string, boolean>>({});
+  const [disputeDialogOrderId, setDisputeDialogOrderId] = useState<string | null>(null);
+  const [disputeStatus, setDisputeStatus] = useState<EscrowDisputeStatus>("idle");
+  const [disputeError, setDisputeError] = useState<string | null>(null);
 
   const handleAcceptOrder = useCallback(
     async (orderId: string) => {
@@ -137,7 +150,7 @@ export default function OrdersPage() {
       }
 
       const sellerAddress = order.user.address;
-      const buyerAddress = "PLACEHOLDER_BUYER_STELLAR_ADDRESS";
+      const buyerAddress = PLACEHOLDER_BUYER_ADDRESS;
 
       setDeployStatus((prev) => ({ ...prev, [orderId]: "deploying" }));
 
@@ -173,7 +186,75 @@ export default function OrdersPage() {
     ? orders.find((o) => o.id === selectedOrderId)
     : null;
 
+  const handleOpenDispute = useCallback((orderId: string) => {
+    setDisputeError(null);
+    setDisputeStatus("idle");
+    setDisputeDialogOrderId(orderId);
+  }, []);
+
+  const handleCloseDispute = useCallback(() => {
+    if (disputeStatus === "requesting-signature" || disputeStatus === "submitting") return;
+    setDisputeDialogOrderId(null);
+    setDisputeError(null);
+  }, [disputeStatus]);
+
+  const handleSubmitDispute = useCallback(
+    async (reason: string) => {
+      const order = disputeDialogOrderId
+        ? orders.find((o) => o.id === disputeDialogOrderId)
+        : null;
+
+      if (!order?.escrowContractId) {
+        setDisputeError("The escrow contract has not been deployed yet");
+        throw new EscrowDisputeError("The escrow contract has not been deployed yet");
+      }
+
+      setDisputeError(null);
+
+      try {
+        await raiseEscrowDispute(
+          {
+            contractId: order.escrowContractId,
+            signer: PLACEHOLDER_BUYER_ADDRESS,
+            reason,
+          },
+          mockSignTransaction,
+          setDisputeStatus
+        );
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-dispute-${Date.now()}`,
+            type: "text",
+            text: `[Dispute opened] ${reason.trim()}`,
+            author: "self",
+            timestamp: new Date(),
+          },
+        ]);
+        setDisputedOrders((prev) => ({ ...prev, [order.id]: true }));
+        setDisputeDialogOrderId(null);
+      } catch (error) {
+        const message =
+          error instanceof EscrowDisputeError
+            ? error.message
+            : "Unable to open dispute";
+        setDisputeError(message);
+        throw error instanceof EscrowDisputeError ? error : new EscrowDisputeError(message);
+      }
+    },
+    [disputeDialogOrderId, orders]
+  );
+
+  const isSubmittingDispute =
+    disputeStatus === "requesting-signature" || disputeStatus === "submitting";
+
   if (selectedOrder) {
+    const isSelectedDisputed = Boolean(disputedOrders[selectedOrder.id]);
+    const canRaiseDispute =
+      Boolean(selectedOrder.escrowContractId) &&
+      PLACEHOLDER_BUYER_ADDRESS !== PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS;
+
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
         <ChatScreen
@@ -215,10 +296,21 @@ export default function OrdersPage() {
           onViewReceipt={(messageId) => {
             console.log("View receipt:", messageId);
           }}
+          onRaiseDispute={() => handleOpenDispute(selectedOrder.id)}
+          canRaiseDispute={canRaiseDispute}
+          isDisputed={isSelectedDisputed}
           onBack={() => {
             setSelectedOrderId(null);
           }}
-          lang="es"
+          lang="en"
+        />
+
+        <RaiseDisputeDialog
+          open={disputeDialogOrderId === selectedOrder.id}
+          onClose={handleCloseDispute}
+          onSubmit={handleSubmitDispute}
+          isSubmitting={isSubmittingDispute}
+          submitError={disputeError}
         />
       </main>
     );

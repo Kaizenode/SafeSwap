@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useParams } from "next/navigation";
-import { ChatScreen } from "@/frontend/components/chat";
+import { ChatScreen, RaiseDisputeDialog } from "@/frontend/components/chat";
 import type { ChatMessage } from "@/frontend/components/chat";
 import { Reveal } from "@/frontend/components/motion/reveal";
+import {
+  EscrowDisputeError,
+  raiseEscrowDispute,
+  type EscrowDisputeStatus,
+} from "@/frontend/lib/escrow-dispute";
 
 function createDate(daysAgo: number, hours: number, minutes: number): string {
   const date = new Date();
@@ -74,9 +79,32 @@ const mockMessages: ChatMessage[] = [
   },
 ];
 
+const MOCK_ESCROW_CONTEXT = {
+  contractId: "PLACEHOLDER_ESCROW_CONTRACT_ID",
+  signer: "PLACEHOLDER_USER_STELLAR_ADDRESS",
+  disputeResolverAddress: "PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS",
+};
+
+async function mockSignTransaction(unsignedXdr: string): Promise<string> {
+  console.warn(
+    "[escrow-dispute] mockSignTransaction called — replace with real wallet signing",
+    { unsignedXdr }
+  );
+  throw new Error("Wallet signing is not yet integrated. Please connect a Stellar wallet.");
+}
+
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const counterpartAddress = `0x${params.id}`;
+
+  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
+  const [isDisputeDialogOpen, setDisputeDialogOpen] = useState(false);
+  const [disputeStatus, setDisputeStatus] = useState<EscrowDisputeStatus>("idle");
+  const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [isDisputed, setIsDisputed] = useState(false);
+
+  const canRaiseDispute =
+    MOCK_ESCROW_CONTEXT.signer !== MOCK_ESCROW_CONTEXT.disputeResolverAddress;
 
   const handleSendMessage = useCallback((text: string) => {
     console.log("[Chat] sendMessage", text);
@@ -98,20 +126,84 @@ export default function ChatPage() {
     console.log("[Chat] rejectPaymentRequest", messageId);
   }, []);
 
+  const handleRaiseDispute = useCallback(() => {
+    setDisputeError(null);
+    setDisputeDialogOpen(true);
+  }, []);
+
+  const handleCloseDispute = useCallback(() => {
+    if (disputeStatus === "requesting-signature" || disputeStatus === "submitting") return;
+    setDisputeDialogOpen(false);
+    setDisputeError(null);
+  }, [disputeStatus]);
+
+  const handleSubmitDispute = useCallback(
+    async (reason: string) => {
+      setDisputeError(null);
+
+      try {
+        await raiseEscrowDispute(
+          {
+            contractId: MOCK_ESCROW_CONTEXT.contractId,
+            signer: MOCK_ESCROW_CONTEXT.signer,
+            reason,
+          },
+          mockSignTransaction,
+          setDisputeStatus
+        );
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-dispute-${Date.now()}`,
+            type: "text",
+            text: `[Dispute opened] ${reason.trim()}`,
+            author: "self",
+            timestamp: new Date(),
+          },
+        ]);
+        setIsDisputed(true);
+        setDisputeDialogOpen(false);
+      } catch (error) {
+        const message =
+          error instanceof EscrowDisputeError
+            ? error.message
+            : "Unable to open dispute";
+        setDisputeError(message);
+        throw error instanceof EscrowDisputeError ? error : new EscrowDisputeError(message);
+      }
+    },
+    []
+  );
+
+  const isSubmittingDispute =
+    disputeStatus === "requesting-signature" || disputeStatus === "submitting";
+
   return (
     <div className="mx-auto flex h-dvh w-full max-w-md flex-col bg-background">
       <Reveal className="flex flex-1 flex-col">
         <ChatScreen
           counterpartAddress={counterpartAddress}
-          messages={mockMessages}
+          messages={messages}
           onSendMessage={handleSendMessage}
           onSendPayment={handleSendPayment}
           onViewReceipt={handleViewReceipt}
           onAcceptPaymentRequest={handleAcceptPaymentRequest}
           onRejectPaymentRequest={handleRejectPaymentRequest}
+          onRaiseDispute={handleRaiseDispute}
+          canRaiseDispute={canRaiseDispute}
+          isDisputed={isDisputed}
           isOnline={true}
         />
       </Reveal>
+
+      <RaiseDisputeDialog
+        open={isDisputeDialogOpen}
+        onClose={handleCloseDispute}
+        onSubmit={handleSubmitDispute}
+        isSubmitting={isSubmittingDispute}
+        submitError={disputeError}
+      />
     </div>
   );
 }
