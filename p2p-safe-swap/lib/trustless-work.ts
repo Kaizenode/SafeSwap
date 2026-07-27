@@ -1,4 +1,7 @@
-const BASE_URL = "https://dev.api.trustlesswork.com";
+const BASE_URL =
+  process.env.TW_NETWORK === "mainnet"
+    ? "https://api.trustlesswork.com"
+    : "https://dev.api.trustlesswork.com";
 
 export class TrustlessWorkApiError extends Error {
   constructor(
@@ -61,26 +64,92 @@ export interface FundSingleReleaseEscrowResponse {
   status?: string;
 }
 
+// ─── Dispute ─────────────────────────────────────────────────────────────────
+
+export const DISPUTE_REASON_MAX_LENGTH = 500;
+
+/**
+ * Trustless Work's dev API only accepts `contractId` and `signer` — `reason`
+ * is enforced at our API boundary and persisted client-side as a chat
+ * message. See #312 and the endpoint probe results.
+ */
+export interface DisputeSingleReleaseEscrowRequest {
+  contractId: string;
+  signer: string;
+}
+
+export interface DisputeSingleReleaseEscrowResponse {
+  unsignedTransaction?: string;
+  status?: string;
+}
+
 export interface SendTransactionRequest {
   signedXdr: string;
 }
 
+// ─── Milestones / release ──────────────────────────────────────────────────
+
+export interface ApproveMilestoneRequest {
+  contractId: string;
+  milestoneIndex: string;
+  approver: string;
+}
+
+export interface ChangeMilestoneStatusRequest {
+  contractId: string;
+  milestoneIndex: string;
+  newEvidence: string;
+  newStatus: string;
+  serviceProvider: string;
+}
+
+export interface ReleaseFundsRequest {
+  contractId: string;
+  releaseSigner: string;
+}
+
+export interface ResolveDisputeRequest {
+  contractId: string;
+  disputeResolver: string;
+  distributions: Array<{ address: string; amount: number }>;
+}
+
+// ─── Queries ────────────────────────────────────────────────────────────────
+
 export interface GetEscrowsBySignerParams {
-  signer: string;
-  type?: "single-release" | "multi-release";
-  status?: string;
+  signer?: string;
   role?: string;
+  roleAddress?: string;
+  status?: string;
+  type?: "single-release" | "multi-release";
   engagementId?: string;
-  isActive?: boolean;
-  orderBy?: "createdAt" | "updatedAt" | "amount";
-  orderDirection?: "asc" | "desc";
-  page?: number;
   title?: string;
+  isActive?: boolean;
+  validateOnChain?: boolean;
   startDate?: string;
   endDate?: string;
   minAmount?: number;
   maxAmount?: number;
-  validateOnChain?: boolean;
+  orderBy?: "createdAt" | "updatedAt" | "amount";
+  orderDirection?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+  contractID?: string;
+}
+
+function toQueryString<T extends object>(params: T): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params) as [string, unknown][]) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      // Bracket notation so the server parses this as an array even with a single item.
+      for (const item of value) search.append(`${key}[]`, String(item));
+    } else {
+      search.append(key, String(value));
+    }
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
 }
 
 function getHeaders() {
@@ -118,14 +187,8 @@ export const trustlessWork = {
         body: JSON.stringify(body),
       }),
 
-    initialize: (body: Record<string, unknown>) =>
-      request("/escrow/initialize-escrow", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
-
     update: (body: object) =>
-      request<{ unsignedXdr: string }>("/escrow/single-release/v2/update", {
+      request<{ unsignedXdr: string }>("/escrow/single-release/update-escrow", {
         method: "PUT",
         body: JSON.stringify(body),
       }),
@@ -148,11 +211,41 @@ export const trustlessWork = {
         }
       ),
 
-    completeEscrow: (body: Record<string, unknown>) =>
-      request("/escrow/complete-escrow", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+    releaseFunds: (body: ReleaseFundsRequest) =>
+      request<{ unsignedTransaction?: string; status?: string }>(
+        "/escrow/single-release/release-funds",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    approveMilestone: (body: ApproveMilestoneRequest) =>
+      request<{ unsignedTransaction?: string; status?: string }>(
+        "/escrow/single-release/approve-milestone",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    changeMilestoneStatus: (body: ChangeMilestoneStatusRequest) =>
+      request<{ unsignedTransaction?: string; status?: string }>(
+        "/escrow/single-release/change-milestone-status",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    disputeSingleReleaseV2: (body: DisputeSingleReleaseEscrowRequest) =>
+      request<DisputeSingleReleaseEscrowResponse>(
+        "/escrow/single-release/dispute-escrow",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
 
     disputeEscrow: (body: Record<string, unknown>) =>
       request("/escrow/dispute-escrow", {
@@ -160,17 +253,14 @@ export const trustlessWork = {
         body: JSON.stringify(body),
       }),
 
-    resolveDispute: (body: Record<string, unknown>) =>
-      request("/escrow/resolve-dispute", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
-
-    changeMilestoneStatus: (body: Record<string, unknown>) =>
-      request("/escrow/single-release/v2/change-milestone-status", {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+    resolveDispute: (body: ResolveDisputeRequest) =>
+      request<{ unsignedTransaction?: string; status?: string }>(
+        "/escrow/single-release/resolve-dispute",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
   },
 
   stellar: {
@@ -182,16 +272,10 @@ export const trustlessWork = {
   },
 
   helper: {
-    // Returns a bare array of indexer escrows for the signer.
-    getEscrowsBySigner: (params: GetEscrowsBySignerParams) => {
-      const search = new URLSearchParams();
-      for (const [key, value] of Object.entries(params)) {
-        if (value === undefined || value === null || value === "") continue;
-        search.set(key, String(value));
-      }
-      return request<unknown[]>(
-        `/helper/get-escrows-by-signer?${search.toString()}`
-      );
-    },
+    getEscrowsBySigner: (params: GetEscrowsBySignerParams) =>
+      request(`/helper/get-escrows-by-signer${toQueryString(params)}`),
+
+    getMultipleEscrowBalance: (addresses: string[]) =>
+      request(`/helper/get-multiple-escrow-balance${toQueryString({ addresses })}`),
   },
 };

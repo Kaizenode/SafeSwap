@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WalletBadge } from "@/frontend/components/ui/wallet-badge";
 import { truncateAddress } from "./utils";
@@ -9,7 +10,8 @@ export interface ChatHeaderProps {
   counterpartAddress: string;
   isOnline?: boolean;
   onBack?: () => void;
-  onMore?: () => void;
+  onRaiseDispute?: () => void;
+  canRaiseDispute?: boolean;
   className?: string;
 }
 
@@ -17,7 +19,8 @@ export function ChatHeader({
   counterpartAddress,
   isOnline = true,
   onBack,
-  onMore,
+  onRaiseDispute,
+  canRaiseDispute = true,
   className,
 }: ChatHeaderProps) {
   const [copied, setCopied] = useState(false);
@@ -46,7 +49,7 @@ export function ChatHeader({
         <button
           type="button"
           onClick={onBack}
-          aria-label="Volver"
+          aria-label="Back"
           className={cn(
             "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors",
             "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -85,14 +88,14 @@ export function ChatHeader({
             )}
             aria-hidden="true"
           />
-          {isOnline ? "Activa ahora" : "Desconectada"}
+          {isOnline ? "Active now" : "Offline"}
         </span>
       </div>
 
       <button
         type="button"
         onClick={handleCopy}
-        aria-label={copied ? "Dirección copiada" : "Copiar dirección"}
+        aria-label={copied ? "Address copied" : "Copy address"}
         aria-live="polite"
         className={cn(
           "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors",
@@ -132,27 +135,22 @@ export function ChatHeader({
         )}
       </button>
 
-      <button
-        type="button"
-        onClick={onMore}
-        aria-label="Más opciones"
-        className={cn(
-          "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors",
-          "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        )}
-      >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-hidden="true"
+      {onRaiseDispute ? (
+        <button
+          type="button"
+          onClick={onRaiseDispute}
+          disabled={!canRaiseDispute}
+          aria-label="Open dispute"
+          title="Open dispute"
+          className={cn(
+            "inline-flex size-9 shrink-0 items-center justify-center rounded-full text-destructive transition-colors",
+            "hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive",
+            "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+          )}
         >
-          <circle cx="12" cy="5" r="1.6" />
-          <circle cx="12" cy="12" r="1.6" />
-          <circle cx="12" cy="19" r="1.6" />
-        </svg>
-      </button>
+          <AlertTriangle size={18} aria-hidden="true" />
+        </button>
+      ) : null}
     </header>
   );
 }
