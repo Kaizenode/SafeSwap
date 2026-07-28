@@ -20,7 +20,13 @@ function extractNumber(source: Record<string, unknown>, keys: readonly string[])
   return null;
 }
 
-function normalize(raw: unknown): { txHash: string | null; ledger: number | null; raw: Record<string, unknown> } {
+function normalize(raw: unknown): {
+  txHash: string | null;
+  ledger: number | null;
+  status: string | null;
+  contractId: string | null;
+  raw: Record<string, unknown>;
+} {
   const record: Record<string, unknown> =
     raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const nested =
@@ -35,6 +41,10 @@ function normalize(raw: unknown): { txHash: string | null; ledger: number | null
     ledger:
       extractNumber(nested, ["ledger", "ledgerSequence", "ledgerNumber"]) ??
       extractNumber(record, ["ledger", "ledgerSequence", "ledgerNumber"]),
+    status:
+      extractString(nested, ["status"]) ?? extractString(record, ["status"]),
+    contractId:
+      extractString(nested, ["contractId"]) ?? extractString(record, ["contractId"]),
     raw: record,
   };
 }
