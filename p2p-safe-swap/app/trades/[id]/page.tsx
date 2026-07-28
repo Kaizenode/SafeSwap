@@ -10,6 +10,7 @@ import {
   EscrowStepper,
   type EscrowStep,
 } from "@/frontend/components/trade/escrow-stepper";
+import { EscrowLiveBalance } from "@/frontend/components/escrow/EscrowLiveBalance";
 
 interface TradeStatusPageProps {
   params: Promise<{ id: string }>;
@@ -89,6 +90,9 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
   const currentStep = steps.find((s) => s.status === "current");
   const primary = getPrimaryAction(currentStep?.key);
   const disputeDisabled = currentStep === undefined;
+  const isFunded = steps.some(
+    (step) => step.key === "funded" && (step.status === "current" || step.status === "completed")
+  );
 
   const handlePrimary = () => {
     console.log("[escrow] primary action:", {
@@ -168,6 +172,13 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
             </code>
           </div>
         </section>
+
+        {isFunded && MOCK_TRADE.contractId ? (
+          <EscrowLiveBalance
+            contractId={MOCK_TRADE.contractId}
+            currency={MOCK_TRADE.currency}
+          />
+        ) : null}
 
         <section
           aria-labelledby="escrow-stepper-heading"
