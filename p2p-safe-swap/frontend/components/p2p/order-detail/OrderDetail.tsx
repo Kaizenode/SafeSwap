@@ -4,6 +4,7 @@ import { ArrowLeft, BadgeCheck, Clock } from "lucide-react";
 import { Button } from "@/frontend/components/ui/Button/Button";
 import { WalletBadge } from "@/frontend/components/ui/wallet-badge";
 import { Reveal } from "@/frontend/components/motion/reveal";
+import { EscrowLiveBalance } from "@/frontend/components/escrow/EscrowLiveBalance";
 import { cn } from "@/lib/utils";
 import type { OrderMode, P2POrder } from "../types";
 import { formatAmount, MODE_COPY, useOrderAmount } from "./useOrderAmount";
@@ -60,6 +61,13 @@ export function OrderDetail({
       </header>
 
       <Reveal className="flex flex-col gap-4">
+        {order.escrowContractId ? (
+          <EscrowLiveBalance
+            contractId={order.escrowContractId}
+            currency={order.trustline?.symbol ?? order.currencyPair.quote}
+          />
+        ) : null}
+
         <section
           aria-label="Contraparte y precio"
           className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
