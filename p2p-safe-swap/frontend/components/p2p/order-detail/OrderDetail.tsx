@@ -48,7 +48,7 @@ export function OrderDetail({
         <button
           type="button"
           onClick={onBack}
-          aria-label="Volver"
+          aria-label="Back"
           className="group flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft
@@ -57,7 +57,7 @@ export function OrderDetail({
             className="transition-transform duration-200 ease-out group-hover:-translate-x-0.5"
           />
         </button>
-        <h1 className="text-base font-semibold text-foreground">Detalle de la orden</h1>
+        <h1 className="text-base font-semibold text-foreground">Order details</h1>
       </header>
 
       <Reveal className="flex flex-col gap-4">
@@ -69,7 +69,7 @@ export function OrderDetail({
         ) : null}
 
         <section
-          aria-label="Contraparte y precio"
+          aria-label="Counterpart and price"
           className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
         >
           <div className="flex items-center gap-3">
@@ -83,7 +83,7 @@ export function OrderDetail({
                   {order.user.address}
                 </span>
                 {order.user.verified && (
-                  <BadgeCheck size={16} className="shrink-0 text-primary" aria-label="Verificado" />
+                  <BadgeCheck size={16} className="shrink-0 text-primary" aria-label="Verified" />
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -96,7 +96,7 @@ export function OrderDetail({
 
           <div className="flex flex-col gap-1 border-t border-border pt-4">
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Precio
+              Price
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">
@@ -110,23 +110,23 @@ export function OrderDetail({
         </section>
 
         <section
-          aria-label="Condiciones de la orden"
+          aria-label="Order conditions"
           className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm"
         >
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Disponible</span>
+            <span className="text-muted-foreground">Available</span>
             <span className="font-semibold text-foreground tabular-nums">
               {formatAmount(order.available)} {order.currencyPair.quote}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Límites</span>
+            <span className="text-muted-foreground">Limits</span>
             <span className="font-semibold text-foreground tabular-nums">
               {formatAmount(min)} – {formatAmount(max)} {order.currencyPair.base}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Ventana de pago</span>
+            <span className="text-muted-foreground">Payment window</span>
             <span className="flex items-center gap-1 font-semibold text-primary">
               <Clock size={14} aria-hidden="true" />
               {order.windowMinutes} min
@@ -134,9 +134,9 @@ export function OrderDetail({
           </div>
         </section>
 
-        <section aria-label="Métodos de pago" className="flex flex-col gap-2">
+        <section aria-label="Payment methods" className="flex flex-col gap-2">
           <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Métodos de pago
+            Payment methods
           </span>
           <div className="flex flex-wrap gap-2">
             {order.paymentMethods.map((method) => (
@@ -151,7 +151,7 @@ export function OrderDetail({
         </section>
 
         <section
-          aria-label="Monto a intercambiar"
+          aria-label="Amount to exchange"
           className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm"
         >
           <div className="flex items-center justify-between gap-2">
@@ -165,18 +165,18 @@ export function OrderDetail({
               <button
                 type="button"
                 onClick={fillMin}
-                aria-label={`Usar monto mínimo, ${formatAmount(min)} ${order.currencyPair.base}`}
+                aria-label={`Use minimum amount, ${formatAmount(min)} ${order.currencyPair.base}`}
                 className="cursor-pointer rounded-full border border-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Mín
+                Min
               </button>
               <button
                 type="button"
                 onClick={fillMax}
-                aria-label={`Usar monto máximo, ${formatAmount(max)} ${order.currencyPair.base}`}
+                aria-label={`Use maximum amount, ${formatAmount(max)} ${order.currencyPair.base}`}
                 className="cursor-pointer rounded-full border border-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-primary hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Máx
+                Max
               </button>
             </div>
           </div>
@@ -201,7 +201,7 @@ export function OrderDetail({
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Recibes</span>
+            <span className="text-muted-foreground">You receive</span>
             <span
               className={cn(
                 "font-semibold tabular-nums",
