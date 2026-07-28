@@ -13,6 +13,7 @@ export interface P2POrderListProps {
   mode: OrderMode;
   onModeChange: (mode: OrderMode) => void;
   onBuy: (orderId: string) => void;
+  onOpenDetail?: (orderId: string) => void;
   className?: string;
 }
 
@@ -40,6 +41,7 @@ export function P2POrderList({
   mode,
   onModeChange,
   onBuy,
+  onOpenDetail,
   className,
 }: P2POrderListProps) {
   const sortedOrders = sortOrdersByBestPrice(orders, mode);
@@ -94,6 +96,7 @@ export function P2POrderList({
                 lang="es"
                 mode={mode}
                 onBuy={() => onBuy(order.id)}
+                onSelect={onOpenDetail ? () => onOpenDetail(order.id) : undefined}
               />
             </Reveal>
           ))

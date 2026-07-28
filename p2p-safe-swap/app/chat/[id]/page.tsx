@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ChatScreen, RaiseDisputeDialog } from "@/frontend/components/chat";
 import type { ChatMessage } from "@/frontend/components/chat";
 import { Reveal } from "@/frontend/components/motion/reveal";
@@ -95,6 +95,7 @@ async function mockSignTransaction(unsignedXdr: string): Promise<string> {
 
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const counterpartAddress = `0x${params.id}`;
 
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
@@ -185,6 +186,7 @@ export default function ChatPage() {
         <ChatScreen
           counterpartAddress={counterpartAddress}
           messages={messages}
+          onBack={() => router.back()}
           onSendMessage={handleSendMessage}
           onSendPayment={handleSendPayment}
           onViewReceipt={handleViewReceipt}
