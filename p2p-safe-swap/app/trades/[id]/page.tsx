@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, MessageCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/frontend/components/ui/Button/Button";
 import { WalletBadge } from "@/frontend/components/ui/wallet-badge";
 import { Reveal } from "@/frontend/components/motion/reveal";
@@ -117,7 +117,14 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
           Trade status
         </h1>
 
-        <span className="size-10" aria-hidden />
+        <button
+          type="button"
+          aria-label="Open chat with counterparty"
+          onClick={() => router.push(`/chat/${id}`)}
+          className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <MessageCircle className="size-5" />
+        </button>
       </header>
 
       <Reveal className="flex flex-col gap-6">

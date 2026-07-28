@@ -43,6 +43,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
         onBack={() => router.back()}
         onStartTrade={(payload) => {
           console.log("Start trade intent:", payload);
+          router.push(`/trades/${payload.orderId}`);
         }}
       />
     </main>
