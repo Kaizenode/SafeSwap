@@ -1,3 +1,10 @@
+import {
+  signAndSubmitTransaction,
+  SignAndSubmitError,
+  type SignTransaction,
+  type SubmitReceipt,
+} from "./stellar-transaction";
+
 export type EscrowDeploymentStatus =
   | "idle"
   | "deploying"
@@ -18,9 +25,13 @@ export interface DeployEscrowInput {
 
 export interface DeployEscrowResult {
   contractId: string;
+  txHash: string;
+  ledger: number | null;
+  /** Populated via GET /api/escrow/get-by-contract-id. `null` if hydration failed. */
+  escrow: Record<string, unknown> | null;
 }
 
-export type SignEscrowDeployTransaction = (unsignedXdr: string) => Promise<string>;
+export type SignEscrowDeployTransaction = SignTransaction;
 
 export class EscrowDeploymentError extends Error {
   constructor(message: string) {
@@ -34,9 +45,8 @@ interface DeployResponse {
   contractId?: string;
 }
 
-interface SendTransactionResponse {
-  contractId?: string;
-  [key: string]: unknown;
+interface HydrationResponse {
+  escrow?: Record<string, unknown> | null;
 }
 
 interface ErrorResponse {
@@ -62,6 +72,39 @@ function validateInput(input: DeployEscrowInput) {
     throw new EscrowDeploymentError("amount must be a positive number");
   if (!input.trustline.address.trim() || !input.trustline.symbol.trim())
     throw new EscrowDeploymentError("trustline.address and trustline.symbol are required");
+}
+
+function mapSubmitStatus(status: string): EscrowDeploymentStatus | null {
+  switch (status) {
+    case "requesting-signature":
+    case "submitting":
+    case "failed":
+      return status;
+    case "submitted":
+      return "deployed";
+    default:
+      return null;
+  }
+}
+
+function pickContractIdFromRaw(raw: Record<string, unknown>): string | null {
+  const nested =
+    raw.data && typeof raw.data === "object" ? (raw.data as Record<string, unknown>) : raw;
+  const candidate = nested.contractId ?? raw.contractId;
+  return typeof candidate === "string" && candidate.trim() !== "" ? candidate : null;
+}
+
+async function fetchEscrow(contractId: string): Promise<Record<string, unknown> | null> {
+  try {
+    const response = await fetch(
+      `/api/escrow/get-by-contract-id?contractId=${encodeURIComponent(contractId)}`
+    );
+    if (!response.ok) return null;
+    const body = (await response.json()) as HydrationResponse;
+    return body.escrow ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function deployEscrow(
@@ -91,38 +134,22 @@ export async function deployEscrow(
     throw new EscrowDeploymentError("Escrow service did not return a deployment transaction");
   }
 
-  onStatusChange?.("requesting-signature");
-
-  let signedXdr: string;
+  let receipt: SubmitReceipt;
   try {
-    signedXdr = await signTransaction(deployData.unsignedXdr);
+    receipt = await signAndSubmitTransaction(deployData.unsignedXdr, signTransaction, {
+      onStatusChange: (status) => {
+        const mapped = mapSubmitStatus(status);
+        if (mapped) onStatusChange?.(mapped);
+      },
+    });
   } catch (error) {
-    onStatusChange?.("failed");
-    const message = error instanceof Error ? error.message : "Wallet signature was rejected";
-    throw new EscrowDeploymentError(message);
+    if (error instanceof SignAndSubmitError) {
+      throw new EscrowDeploymentError(error.message);
+    }
+    throw error;
   }
 
-  if (!signedXdr) {
-    onStatusChange?.("failed");
-    throw new EscrowDeploymentError("Wallet did not return a signed transaction");
-  }
-
-  onStatusChange?.("submitting");
-
-  const sendResponse = await fetch("/api/stellar/send-transaction", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ signedXdr }),
-  });
-
-  if (!sendResponse.ok) {
-    onStatusChange?.("failed");
-    throw new EscrowDeploymentError(await readError(sendResponse));
-  }
-
-  const sendData = (await sendResponse.json()) as SendTransactionResponse;
-
-  const contractId = sendData.contractId ?? deployData.contractId;
+  const contractId = deployData.contractId ?? pickContractIdFromRaw(receipt.raw);
 
   if (!contractId) {
     onStatusChange?.("failed");
@@ -131,6 +158,12 @@ export async function deployEscrow(
     );
   }
 
-  onStatusChange?.("deployed");
-  return { contractId };
+  const escrow = await fetchEscrow(contractId);
+
+  return {
+    contractId,
+    txHash: receipt.txHash,
+    ledger: receipt.ledger,
+    escrow,
+  };
 }
