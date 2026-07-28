@@ -14,7 +14,7 @@ export interface SearchBarProps
 export function SearchBar({
   value,
   onChange,
-  placeholder = "Buscar transacciones...",
+  placeholder = "Search transactions...",
   className,
   ...props
 }: SearchBarProps) {
