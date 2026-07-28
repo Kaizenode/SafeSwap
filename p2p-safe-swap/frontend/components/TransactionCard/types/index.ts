@@ -17,6 +17,7 @@ export interface TransactionCardProperties{
     lang?: TransactionCardLang;
     mode?: TransactionCardMode;
     onBuy:() => void;
+    onSelect?: () => void;
 }
 
 

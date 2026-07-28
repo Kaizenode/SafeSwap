@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { P2POrderList } from "@/frontend/components/p2p";
 import { ChatScreen } from "@/frontend/components/chat/chat-screen";
 import { RaiseDisputeDialog } from "@/frontend/components/chat";
@@ -129,6 +130,7 @@ const MOCK_MESSAGES: ChatMessage[] = [
 ];
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<OrderMode>("buy");
   const [orders, setOrders] = useState<P2POrder[]>(MOCK_ORDERS);
   const [deployStatus, setDeployStatus] = useState<
@@ -347,6 +349,7 @@ export default function OrdersPage() {
           }
           setSelectedOrderId(orderId);
         }}
+        onOpenDetail={(orderId) => router.push(`/p2p/orders/${orderId}`)}
       />
     </main>
   );
