@@ -1,3 +1,9 @@
+import {
+  signAndSubmitTransaction,
+  SignAndSubmitError,
+  type SignTransaction,
+} from "./stellar-transaction";
+
 export type EscrowFundingStatus =
   | "idle"
   | "requesting-signature"
@@ -12,7 +18,7 @@ export interface DeployedEscrowFundingInput {
   amount: string | number;
 }
 
-export type SignEscrowTransaction = (unsignedXdr: string) => Promise<string>;
+export type SignEscrowTransaction = SignTransaction;
 
 export class EscrowFundingError extends Error {
   constructor(message: string) {
@@ -31,7 +37,6 @@ interface ErrorResponse {
 
 async function readError(response: Response): Promise<string> {
   const fallback = `Request failed (${response.status})`;
-
   try {
     const body = (await response.json()) as ErrorResponse;
     return body.error || fallback;
@@ -56,6 +61,19 @@ function validateFundingInput({ contractId, signer, amount }: DeployedEscrowFund
   }
 }
 
+function mapSubmitStatus(status: string): EscrowFundingStatus | null {
+  switch (status) {
+    case "requesting-signature":
+    case "submitting":
+    case "failed":
+      return status;
+    case "submitted":
+      return "funded";
+    default:
+      return null;
+  }
+}
+
 /**
  * Run this immediately after the order's deployment request succeeds. The order
  * must not be marked funded until this function resolves.
@@ -66,7 +84,6 @@ export async function fundDeployedEscrow(
   onStatusChange?: (status: EscrowFundingStatus) => void
 ): Promise<void> {
   validateFundingInput(input);
-  onStatusChange?.("requesting-signature");
 
   const fundingResponse = await fetch("/api/escrow/single-release/v2/fund", {
     method: "POST",
@@ -85,31 +102,17 @@ export async function fundDeployedEscrow(
     throw new EscrowFundingError("Escrow service did not return a funding transaction");
   }
 
-  let signedXdr: string;
   try {
-    signedXdr = await signTransaction(unsignedXdr);
+    await signAndSubmitTransaction(unsignedXdr, signTransaction, {
+      onStatusChange: (status) => {
+        const mapped = mapSubmitStatus(status);
+        if (mapped) onStatusChange?.(mapped);
+      },
+    });
   } catch (error) {
-    onStatusChange?.("failed");
-    const message = error instanceof Error ? error.message : "Wallet signature was rejected";
-    throw new EscrowFundingError(message);
+    if (error instanceof SignAndSubmitError) {
+      throw new EscrowFundingError(error.message);
+    }
+    throw error;
   }
-
-  if (!signedXdr) {
-    onStatusChange?.("failed");
-    throw new EscrowFundingError("Wallet did not return a signed transaction");
-  }
-
-  onStatusChange?.("submitting");
-  const submissionResponse = await fetch("/api/stellar/send-transaction", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ signedXdr }),
-  });
-
-  if (!submissionResponse.ok) {
-    onStatusChange?.("failed");
-    throw new EscrowFundingError(await readError(submissionResponse));
-  }
-
-  onStatusChange?.("funded");
 }
