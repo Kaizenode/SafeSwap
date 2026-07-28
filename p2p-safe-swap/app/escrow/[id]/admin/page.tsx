@@ -1,12 +1,13 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import { EscrowAdminUpdateForm } from "@/frontend/components/escrow/EscrowAdminUpdateForm";
+import { ResolveDisputePanel } from "@/frontend/components/escrow/ResolveDisputePanel";
 import type { Escrow } from "@/frontend/components/escrow/types";
 
 const MOCK_ESCROW: Escrow = {
   contractId: "esc-diego-v",
-  status: "unfunded",
+  status: "funded",
   amount: 1500,
   currency: "USDC",
   platformFee: 1.5,
@@ -25,6 +26,7 @@ const MOCK_ESCROW: Escrow = {
 };
 
 const MOCK_IS_ADMIN = true;
+const MOCK_IS_MODERATOR = true;
 
 interface EscrowAdminPageProps {
   params: Promise<{ id: string }>;
@@ -32,15 +34,23 @@ interface EscrowAdminPageProps {
 
 export default function EscrowAdminPage({ params }: EscrowAdminPageProps) {
   const { id } = use(params);
-  const escrow: Escrow = { ...MOCK_ESCROW, contractId: id };
+  const [escrow, setEscrow] = useState<Escrow>({ ...MOCK_ESCROW, contractId: id });
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-4 p-4">
       <EscrowAdminUpdateForm
         escrow={escrow}
         isAdmin={MOCK_IS_ADMIN}
         onSubmit={(payload) => {
           console.log("Escrow update submitted:", payload);
+        }}
+      />
+      <ResolveDisputePanel
+        escrow={escrow}
+        isModerator={MOCK_IS_MODERATOR}
+        currentWalletAddress="GOPQ3RSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"
+        onResolved={(updatedEscrow) => {
+          setEscrow(updatedEscrow);
         }}
       />
     </main>
