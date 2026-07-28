@@ -1,3 +1,9 @@
+import {
+  signAndSubmitTransaction,
+  SignAndSubmitError,
+  type SignTransaction,
+} from "./stellar-transaction";
+
 export const DISPUTE_REASON_MAX_LENGTH = 500;
 
 export type EscrowDisputeStatus =
@@ -13,7 +19,7 @@ export interface RaiseEscrowDisputeInput {
   reason: string;
 }
 
-export type SignEscrowTransaction = (unsignedXdr: string) => Promise<string>;
+export type SignEscrowTransaction = SignTransaction;
 
 export class EscrowDisputeError extends Error {
   constructor(message: string) {
@@ -32,7 +38,6 @@ interface ErrorResponse {
 
 async function readError(response: Response): Promise<string> {
   const fallback = `Request failed (${response.status})`;
-
   try {
     const body = (await response.json()) as ErrorResponse;
     return body.error || fallback;
@@ -58,13 +63,25 @@ function validateDisputeInput({ contractId, signer, reason }: RaiseEscrowDispute
   }
 }
 
+function mapSubmitStatus(status: string): EscrowDisputeStatus | null {
+  switch (status) {
+    case "requesting-signature":
+    case "submitting":
+    case "failed":
+      return status;
+    case "submitted":
+      return "disputed";
+    default:
+      return null;
+  }
+}
+
 export async function raiseEscrowDispute(
   input: RaiseEscrowDisputeInput,
   signTransaction: SignEscrowTransaction,
   onStatusChange?: (status: EscrowDisputeStatus) => void
 ): Promise<void> {
   validateDisputeInput(input);
-  onStatusChange?.("requesting-signature");
 
   const disputeResponse = await fetch("/api/escrow/single-release/v2/dispute", {
     method: "POST",
@@ -83,31 +100,17 @@ export async function raiseEscrowDispute(
     throw new EscrowDisputeError("Escrow service did not return a dispute transaction");
   }
 
-  let signedXdr: string;
   try {
-    signedXdr = await signTransaction(unsignedXdr);
+    await signAndSubmitTransaction(unsignedXdr, signTransaction, {
+      onStatusChange: (status) => {
+        const mapped = mapSubmitStatus(status);
+        if (mapped) onStatusChange?.(mapped);
+      },
+    });
   } catch (error) {
-    onStatusChange?.("failed");
-    const message = error instanceof Error ? error.message : "Wallet signature was rejected";
-    throw new EscrowDisputeError(message);
+    if (error instanceof SignAndSubmitError) {
+      throw new EscrowDisputeError(error.message);
+    }
+    throw error;
   }
-
-  if (!signedXdr) {
-    onStatusChange?.("failed");
-    throw new EscrowDisputeError("Wallet did not return a signed transaction");
-  }
-
-  onStatusChange?.("submitting");
-  const submissionResponse = await fetch("/api/stellar/send-transaction", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ signedXdr }),
-  });
-
-  if (!submissionResponse.ok) {
-    onStatusChange?.("failed");
-    throw new EscrowDisputeError(await readError(submissionResponse));
-  }
-
-  onStatusChange?.("disputed");
 }
