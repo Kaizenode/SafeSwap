@@ -12,7 +12,7 @@ export type SignAndSubmitStatus =
   | "failed";
 
 export interface SubmitReceipt {
-  txHash: string;
+  txHash: string | null;
   ledger: number | null;
   raw: Record<string, unknown>;
 }
@@ -107,7 +107,11 @@ export function normalizeSubmitResponse(raw: unknown): SubmitReceipt {
     extractString(nested, ["txHash", "hash", "transactionHash"]) ??
     extractString(record, ["txHash", "hash", "transactionHash"]);
 
-  if (!txHash) {
+  const status =
+    extractString(nested, ["status"]) ?? extractString(record, ["status"]);
+  const successful = status?.toUpperCase() === "SUCCESS";
+
+  if (!txHash && !successful) {
     throw new SignAndSubmitError(
       "malformed-response",
       "Submit endpoint did not return a transaction hash"

@@ -25,7 +25,7 @@ export interface DeployEscrowInput {
 
 export interface DeployEscrowResult {
   contractId: string;
-  txHash: string;
+  txHash: string | null;
   ledger: number | null;
   /** Populated via GET /api/escrow/get-by-contract-id. `null` if hydration failed. */
   escrow: Record<string, unknown> | null;

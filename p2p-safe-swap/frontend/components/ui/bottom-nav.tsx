@@ -13,10 +13,10 @@ export interface BottomNavItem {
 }
 
 const DEFAULT_ITEMS: BottomNavItem[] = [
-  { href: "/", label: "Inicio", icon: Home },
-  { href: "/p2p/orders", label: "Órdenes", icon: ArrowLeftRight },
+  { href: "/", label: "Home", icon: Home },
+  { href: "/p2p/orders", label: "Orders", icon: ArrowLeftRight },
   { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/transactions", label: "Transacciones", icon: Receipt },
+  { href: "/transactions", label: "Transactions", icon: Receipt },
 ];
 
 export interface BottomNavProps extends React.ComponentProps<"nav"> {
@@ -40,7 +40,7 @@ export function BottomNav({
   return (
     <nav
       data-slot="bottom-nav"
-      aria-label="Navegación principal"
+      aria-label="Main navigation"
       className={cn(
         "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card",
         "pb-[env(safe-area-inset-bottom)]",

@@ -18,8 +18,8 @@ function createDate(daysAgo: number, hours: number, minutes: number): string {
 const mockTransactions: Transaction[] = [
   {
     id: "1",
-    address: "Lucía Méndez",
-    memo: "Café de ayer",
+    address: "Lucia Mendez",
+    memo: "Yesterday's coffee",
     amount: 4.5,
     date: createDate(0, 9, 12),
     type: "out",
@@ -27,15 +27,15 @@ const mockTransactions: Transaction[] = [
   {
     id: "2",
     address: "Mateo Ruiz",
-    memo: "Cena split",
+    memo: "Dinner split",
     amount: 23,
     date: createDate(0, 8, 45),
     type: "in",
   },
   {
     id: "3",
-    address: "Sofía Paz",
-    memo: "Taxi compartido",
+    address: "Sofia Paz",
+    memo: "Shared taxi",
     amount: 12.3,
     date: createDate(1, 19, 30),
     type: "out",
@@ -43,7 +43,7 @@ const mockTransactions: Transaction[] = [
   {
     id: "4",
     address: "Diego Vera",
-    memo: "Alquiler parcial",
+    memo: "Partial rent",
     amount: 150,
     date: createDate(1, 14, 15),
     type: "in",
@@ -51,15 +51,15 @@ const mockTransactions: Transaction[] = [
   {
     id: "5",
     address: "Ana Cruz",
-    memo: "Regalo cumpleaños",
+    memo: "Birthday gift",
     amount: 25,
     date: createDate(18, 11, 0),
     type: "out",
   },
   {
     id: "6",
-    address: "Carlos Núñez",
-    memo: "Pago pendiente",
+    address: "Carlos Nunez",
+    memo: "Pending payment",
     amount: 40,
     date: createDate(20, 16, 20),
     type: "request",
@@ -67,7 +67,7 @@ const mockTransactions: Transaction[] = [
   {
     id: "7",
     address: "Elena Torres",
-    memo: "Servicio freelance",
+    memo: "Freelance service",
     amount: 85,
     date: createDate(35, 10, 30),
     type: "in",
@@ -75,7 +75,7 @@ const mockTransactions: Transaction[] = [
   {
     id: "8",
     address: "Pablo Soto",
-    memo: "Compra grupal",
+    memo: "Group purchase",
     amount: 18.75,
     date: createDate(42, 18, 45),
     type: "out",
@@ -91,17 +91,17 @@ export default function TransactionsPage() {
       <header className="mb-6 flex items-center justify-between">
         <button
           type="button"
-          aria-label="Volver"
+          aria-label="Back"
           className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
         >
           <ArrowLeft className="size-5" />
         </button>
 
-        <h1 className="text-lg font-semibold text-foreground">Transacciones</h1>
+        <h1 className="text-lg font-semibold text-foreground">Transactions</h1>
 
         <button
           type="button"
-          aria-label="Filtrar transacciones"
+          aria-label="Filter transactions"
           className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted"
         >
           <SlidersHorizontal className="size-4" />

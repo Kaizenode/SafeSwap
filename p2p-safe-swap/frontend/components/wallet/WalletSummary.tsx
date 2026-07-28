@@ -59,9 +59,9 @@ export function WalletSummary({
   }, [address]);
 
   const actions = [
-    { key: "send", label: "Enviar", icon: ArrowUpRight, onClick: onSend },
-    { key: "receive", label: "Recibir", icon: ArrowDownLeft, onClick: onReceive },
-    { key: "deposit", label: "Depositar", icon: Plus, onClick: onDeposit },
+    { key: "send", label: "Send", icon: ArrowUpRight, onClick: onSend },
+    { key: "receive", label: "Receive", icon: ArrowDownLeft, onClick: onReceive },
+    { key: "deposit", label: "Deposit", icon: Plus, onClick: onDeposit },
   ] as const;
 
   return (
@@ -78,7 +78,7 @@ export function WalletSummary({
 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Mi dirección Stellar
+            My Stellar address
           </p>
           <p className="truncate text-sm font-semibold text-foreground">
             {truncateAddress(address)}
@@ -88,7 +88,7 @@ export function WalletSummary({
         <button
           type="button"
           onClick={handleCopy}
-          aria-label="Copiar dirección"
+          aria-label="Copy address"
           className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
         >
           {copied ? (
@@ -100,11 +100,11 @@ export function WalletSummary({
       </div>
 
       <p aria-live="polite" className="sr-only">
-        {copied ? "Dirección copiada al portapapeles" : ""}
+        {copied ? "Address copied to clipboard" : ""}
       </p>
 
       <div>
-        <p className="text-sm text-muted-foreground">Saldo disponible</p>
+        <p className="text-sm text-muted-foreground">Available balance</p>
         <p className="mt-1 flex items-baseline gap-2">
           <span className="text-4xl font-bold tabular-nums text-foreground">
             {formatBalance(balance)}

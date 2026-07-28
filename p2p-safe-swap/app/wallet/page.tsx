@@ -22,8 +22,8 @@ function createDate(daysAgo: number, hours: number, minutes: number): string {
 const mockTransactions: Transaction[] = [
   {
     id: "w1",
-    address: "Lucía Méndez",
-    memo: "Venta USDC",
+    address: "Lucia Mendez",
+    memo: "USDC sale",
     amount: 120,
     date: createDate(0, 10, 5),
     type: "in",
@@ -31,15 +31,15 @@ const mockTransactions: Transaction[] = [
   {
     id: "w2",
     address: "Mateo Ruiz",
-    memo: "Café de ayer",
+    memo: "Yesterday's coffee",
     amount: 4.5,
     date: createDate(0, 8, 40),
     type: "out",
   },
   {
     id: "w3",
-    address: "Sofía Paz",
-    memo: "Escrow liberado",
+    address: "Sofia Paz",
+    memo: "Escrow released",
     amount: 320,
     date: createDate(1, 18, 20),
     type: "in",
@@ -47,7 +47,7 @@ const mockTransactions: Transaction[] = [
   {
     id: "w4",
     address: "Diego Vera",
-    memo: "Pago pendiente",
+    memo: "Pending payment",
     amount: 60,
     date: createDate(2, 12, 0),
     type: "request",
@@ -55,7 +55,7 @@ const mockTransactions: Transaction[] = [
   {
     id: "w5",
     address: "Ana Cruz",
-    memo: "Recarga wallet",
+    memo: "Wallet top-up",
     amount: 45.25,
     date: createDate(9, 16, 30),
     type: "out",
@@ -69,16 +69,16 @@ export default function WalletPage() {
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-col bg-background px-4 py-6">
       <header className="mb-6">
-        <h1 className="text-lg font-semibold text-foreground">Mi wallet</h1>
+        <h1 className="text-lg font-semibold text-foreground">My wallet</h1>
       </header>
 
       <Reveal>
         <WalletSummary
           address={MOCK_ADDRESS}
           balance={MOCK_BALANCE}
-          onSend={() => console.log("Quick action: enviar")}
-          onReceive={() => console.log("Quick action: recibir")}
-          onDeposit={() => console.log("Quick action: depositar")}
+          onSend={() => console.log("Quick action: send")}
+          onReceive={() => console.log("Quick action: receive")}
+          onDeposit={() => console.log("Quick action: deposit")}
         />
       </Reveal>
 
@@ -88,7 +88,7 @@ export default function WalletPage() {
             id="recent-activity-heading"
             className="mb-3 text-base font-semibold text-foreground"
           >
-            Actividad reciente
+            Recent activity
           </h2>
 
           <TransactionList
