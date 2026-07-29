@@ -28,10 +28,10 @@ export interface TransactionListProps
 }
 
 const TABS: { value: TransactionTab; label: string }[] = [
-  { value: "all", label: "Todos" },
-  { value: "in", label: "Entradas" },
-  { value: "out", label: "Salidas" },
-  { value: "requests", label: "Solicitudes" },
+  { value: "all", label: "All" },
+  { value: "in", label: "Incoming" },
+  { value: "out", label: "Outgoing" },
+  { value: "requests", label: "Requests" },
 ];
 
 function startOfDay(date: Date): Date {
@@ -46,11 +46,11 @@ function getSectionLabel(date: Date, today: Date): string {
   const yesterdayStart = new Date(todayStart);
   yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-  if (target.getTime() === todayStart.getTime()) return "HOY";
-  if (target.getTime() === yesterdayStart.getTime()) return "AYER";
+  if (target.getTime() === todayStart.getTime()) return "TODAY";
+  if (target.getTime() === yesterdayStart.getTime()) return "YESTERDAY";
 
   return date
-    .toLocaleDateString("es-ES", { month: "long" })
+    .toLocaleDateString("en-US", { month: "long" })
     .toUpperCase();
 }
 
@@ -64,14 +64,14 @@ function formatTimestamp(date: Date, today: Date): string {
     target.getTime() === todayStart.getTime() ||
     target.getTime() === yesterdayStart.getTime()
   ) {
-    return date.toLocaleTimeString("es-ES", {
+    return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     });
   }
 
-  return date.toLocaleDateString("es-ES", {
+  return date.toLocaleDateString("en-US", {
     day: "2-digit",
     month: "short",
   });
@@ -158,7 +158,7 @@ export function TransactionList({
 
       {groupedTransactions.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted-foreground">
-          No hay transacciones
+          No transactions
         </p>
       ) : (
         <div className="flex flex-col gap-5">

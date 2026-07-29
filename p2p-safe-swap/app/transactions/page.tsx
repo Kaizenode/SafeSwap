@@ -7,22 +7,23 @@ import {
   type Transaction,
   type TransactionTab,
 } from "@/frontend/components/ui/transaction-list";
-import { ConnectWalletButton, useWallet } from "@/frontend/components/wallet";
+import { ConnectWalletButton } from "@/frontend/components/wallet/ConnectWalletButton";
+import { useWallet } from "@/frontend/lib/wallet-context";
 import { useEscrows, escrowToTransaction } from "@/frontend/components/escrows";
 
 export default function TransactionsPage() {
-  const { address } = useWallet();
+  const { publicKey } = useWallet();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<TransactionTab>("all");
 
   // Direction is filtered client-side by TransactionList; the endpoint `role`
   // filter is unused because the live API 400s on it.
   const { escrows, isLoading, error, page, setPage, hasNextPage, hasPrevPage } =
-    useEscrows(address, { type: "single-release" });
+    useEscrows(publicKey, { type: "single-release" });
 
   const transactions: Transaction[] = React.useMemo(
-    () => (address ? escrows.map((e) => escrowToTransaction(e, address)) : []),
-    [escrows, address]
+    () => (publicKey ? escrows.map((e) => escrowToTransaction(e, publicKey)) : []),
+    [escrows, publicKey]
   );
 
   return (
@@ -34,24 +35,24 @@ export default function TransactionsPage() {
       <header className="mb-6 flex items-center justify-between">
         <button
           type="button"
-          aria-label="Volver"
+          aria-label="Back"
           className="flex size-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
         >
           <ArrowLeft className="size-5" />
         </button>
 
-        <h1 className="text-lg font-semibold text-foreground">Transacciones</h1>
+        <h1 className="text-lg font-semibold text-foreground">Transactions</h1>
 
         <button
           type="button"
-          aria-label="Filtrar transacciones"
+          aria-label="Filter transactions"
           className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted"
         >
           <SlidersHorizontal className="size-4" />
         </button>
       </header>
 
-      {!address ? (
+      {!publicKey ? (
         <p className="py-16 text-center text-sm text-muted-foreground">
           Conecta tu wallet para ver tus transacciones.
         </p>

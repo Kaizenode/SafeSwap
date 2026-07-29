@@ -47,7 +47,7 @@ export function EscrowAdminUpdateForm({
       >
         <ShieldAlert className="text-muted-foreground" size={28} aria-hidden="true" />
         <p className="text-sm font-medium text-muted-foreground ">
-          Esta acción solo está disponible para la wallet admin.
+          This action is only available to the admin wallet.
         </p>
       </div>
     );
@@ -59,7 +59,7 @@ export function EscrowAdminUpdateForm({
       className={cn("flex w-full flex-col gap-4 bg-background p-4 sm:p-6", className)}
     >
       <header className="flex flex-col gap-1">
-        <h1 className="text-base font-semibold text-foreground">Editar términos del escrow</h1>
+        <h1 className="text-base font-semibold text-foreground">Edit escrow terms</h1>
         <p className="font-mono text-xs text-muted-foreground">{escrow.contractId}</p>
       </header>
 
@@ -70,17 +70,17 @@ export function EscrowAdminUpdateForm({
             className="flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-primary"
           >
             <Lock size={16} aria-hidden="true" />
-            Este escrow ya está fondeado: solo se pueden agregar milestones nuevos.
+            This escrow is already funded: only new milestones can be added.
           </div>
         )}
 
         <section
-          aria-label="Monto y comisión"
+          aria-label="Amount and fee"
           className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
         >
           <div className="flex flex-col gap-1.5">
             <label htmlFor="escrow-amount" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Monto ({escrow.currency})
+              Amount ({escrow.currency})
             </label>
             <input
               id="escrow-amount"
@@ -96,7 +96,7 @@ export function EscrowAdminUpdateForm({
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="escrow-fee" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Fee de la plataforma (%)
+              Platform fee (%)
             </label>
             <input
               id="escrow-fee"
@@ -112,7 +112,7 @@ export function EscrowAdminUpdateForm({
         </section>
 
         <section
-          aria-label="Roles del escrow"
+          aria-label="Escrow roles"
           className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm"
         >
           <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -161,7 +161,7 @@ export function EscrowAdminUpdateForm({
                   <button
                     type="button"
                     onClick={() => removeMilestone(milestone.id)}
-                    aria-label={`Eliminar milestone ${milestone.description}`}
+                    aria-label={`Remove milestone ${milestone.description}`}
                     className="cursor-pointer rounded-full p-1.5 text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Trash2 size={16} aria-hidden="true" />
@@ -173,13 +173,13 @@ export function EscrowAdminUpdateForm({
 
           <div className="flex flex-col gap-2 border-t border-border pt-4">
             <label htmlFor="new-milestone-description" className="text-xs text-muted-foreground">
-              Agregar milestone
+              Add milestone
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 id="new-milestone-description"
                 type="text"
-                placeholder="Descripción"
+                placeholder="Description"
                 value={newMilestoneDescription}
                 onChange={(e) => setNewMilestoneDescription(e.target.value)}
                 className="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -188,7 +188,7 @@ export function EscrowAdminUpdateForm({
                 type="number"
                 inputMode="decimal"
                 step="any"
-                placeholder={`Monto (${escrow.currency})`}
+                placeholder={`Amount (${escrow.currency})`}
                 value={newMilestoneAmount}
                 onChange={(e) => setNewMilestoneAmount(e.target.value)}
                 className="w-full rounded-xl border border-border bg-transparent px-3 py-2 text-sm text-foreground tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-32"
@@ -196,11 +196,11 @@ export function EscrowAdminUpdateForm({
               <button
                 type="button"
                 onClick={addMilestone}
-                aria-label="Agregar milestone"
+                aria-label="Add milestone"
                 className="flex shrink-0 cursor-pointer items-center justify-center gap-1 rounded-xl border border-secondary px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-primary hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Plus size={16} aria-hidden="true" />
-                Agregar
+                Add
               </button>
             </div>
           </div>
@@ -215,7 +215,7 @@ export function EscrowAdminUpdateForm({
         <Button
           variant="primary"
           size="lg"
-          label={isSubmitting ? "Guardando..." : "Guardar cambios"}
+          label={isSubmitting ? "Saving..." : "Save changes"}
           onClick={handleSubmit}
           disabled={isSubmitting}
           className="w-full"

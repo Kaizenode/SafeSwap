@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useWallet } from "@/frontend/components/wallet";
+import { useWallet } from "@/frontend/lib/wallet-context";
 import { TabBar } from "@/frontend/components/ui/tab-bar";
 import { useEscrows } from "./use-escrows";
 import { escrowToOrder } from "./adapters";
@@ -21,20 +21,20 @@ const STATUS_TABS: { label: string; value?: EscrowStatus }[] = [
 // Additive panel above the marketplace list: shows the connected wallet's
 // escrows with a status badge (issue #316), without touching the marketplace.
 export function EscrowStatusPanel() {
-  const { address } = useWallet();
+  const { publicKey } = useWallet();
   const [statusIndex, setStatusIndex] = React.useState(0);
   const status = STATUS_TABS[statusIndex].value;
 
   const { escrows, isLoading, error, page, setPage, hasNextPage, hasPrevPage } =
-    useEscrows(address, { type: "single-release" });
+    useEscrows(publicKey, { type: "single-release" });
 
   const orders = React.useMemo(
-    () => (address ? escrows.map((e) => escrowToOrder(e, address)) : []),
-    [escrows, address]
+    () => (publicKey ? escrows.map((e) => escrowToOrder(e, publicKey)) : []),
+    [escrows, publicKey]
   );
   const shown = status ? orders.filter((o) => o.status === status) : orders;
 
-  if (!address) return null; // the connect button already prompts the user
+  if (!publicKey) return null; // the connect button already prompts the user
 
   return (
     <section className="px-4 pt-4">

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/frontend/components/theme-provider";
-import { WalletProvider } from "@/frontend/components/wallet";
 import { AppShell } from "@/frontend/components/app-shell";
+import { WalletProvider } from "@/frontend/lib/wallet-context";
 
 // SafeSwap brand typeface (self-hosted variable font).
 const satoshi = localFont({
