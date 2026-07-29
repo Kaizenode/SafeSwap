@@ -25,7 +25,7 @@ export function BestPriceCard({
     >
       <div className="flex flex-col gap-1">
         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Mejor precio
+          Best price
         </span>
         <div className="flex items-baseline gap-2">
           <span className="text-3xl font-semibold tracking-tight text-foreground tabular-nums">
@@ -56,7 +56,7 @@ export function BestPriceCard({
           <polyline points="16 7 22 7 22 13" />
         </svg>
         <span>
-          {ordersCount} {ordersCount === 1 ? "orden" : "órdenes"}
+          {ordersCount} {ordersCount === 1 ? "order" : "orders"}
         </span>
       </div>
     </section>

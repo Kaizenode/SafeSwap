@@ -1,6 +1,6 @@
 'use client'
 import { Clock, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { TransactionCardProperties } from "./types";
 import { formatNumber, getInitials, translations, truncateAddress } from "./utils";
 import { Button } from "../ui/Button/Button";
@@ -21,18 +21,39 @@ export function TransactionCard({
   lang = "en",
   mode = "buy",
   onBuy,
+  onSelect,
 }: TransactionCardProperties) {
   const [copied, setCopied] = useState(false);
   const t = translations[lang];
 
-  function handleCopyAddress() {
+  function handleCopyAddress(e: MouseEvent) {
+    e.stopPropagation();
     navigator.clipboard.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   return (
-    <div className="bg-card rounded-2xl border border-border p-5 flex flex-col gap-5 w-full shadow-sm">
+    <div
+      onClick={onSelect}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect();
+              }
+            }
+          : undefined
+      }
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      className={`bg-card rounded-2xl border border-border p-5 flex flex-col gap-5 w-full shadow-sm ${
+        onSelect
+          ? "cursor-pointer transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          : ""
+      }`}
+    >
 
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
@@ -114,7 +135,9 @@ export function TransactionCard({
 
 
         </div>
-        <Button variant="primary" label={mode === "sell" ? t.sell : t.buy} onClick={onBuy} />
+        <div onClick={(e) => e.stopPropagation()}>
+          <Button variant="primary" label={mode === "sell" ? t.sell : t.buy} onClick={onBuy} />
+        </div>
       </div>
 
     </div>

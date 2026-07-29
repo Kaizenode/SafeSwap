@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ChatScreen, RaiseDisputeDialog } from "@/frontend/components/chat";
 import type { ChatMessage } from "@/frontend/components/chat";
 import { Reveal } from "@/frontend/components/motion/reveal";
@@ -10,6 +10,7 @@ import {
   raiseEscrowDispute,
   type EscrowDisputeStatus,
 } from "@/frontend/lib/escrow-dispute";
+import { useWallet } from "@/frontend/lib/wallet-context";
 
 function createDate(daysAgo: number, hours: number, minutes: number): string {
   const date = new Date();
@@ -81,21 +82,13 @@ const mockMessages: ChatMessage[] = [
 
 const MOCK_ESCROW_CONTEXT = {
   contractId: "PLACEHOLDER_ESCROW_CONTRACT_ID",
-  signer: "PLACEHOLDER_USER_STELLAR_ADDRESS",
-  disputeResolverAddress: "PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS",
 };
-
-async function mockSignTransaction(unsignedXdr: string): Promise<string> {
-  console.warn(
-    "[escrow-dispute] mockSignTransaction called — replace with real wallet signing",
-    { unsignedXdr }
-  );
-  throw new Error("Wallet signing is not yet integrated. Please connect a Stellar wallet.");
-}
 
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const counterpartAddress = `0x${params.id}`;
+  const { publicKey, signTransaction } = useWallet();
 
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [isDisputeDialogOpen, setDisputeDialogOpen] = useState(false);
@@ -103,8 +96,7 @@ export default function ChatPage() {
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [isDisputed, setIsDisputed] = useState(false);
 
-  const canRaiseDispute =
-    MOCK_ESCROW_CONTEXT.signer !== MOCK_ESCROW_CONTEXT.disputeResolverAddress;
+  const canRaiseDispute = Boolean(publicKey);
 
   const handleSendMessage = useCallback((text: string) => {
     console.log("[Chat] sendMessage", text);
@@ -139,16 +131,22 @@ export default function ChatPage() {
 
   const handleSubmitDispute = useCallback(
     async (reason: string) => {
+      if (!publicKey) {
+        const message = "Connect your Stellar wallet before opening a dispute";
+        setDisputeError(message);
+        throw new EscrowDisputeError(message);
+      }
+
       setDisputeError(null);
 
       try {
         await raiseEscrowDispute(
           {
             contractId: MOCK_ESCROW_CONTEXT.contractId,
-            signer: MOCK_ESCROW_CONTEXT.signer,
+            signer: publicKey,
             reason,
           },
-          mockSignTransaction,
+          signTransaction,
           setDisputeStatus
         );
 
@@ -173,7 +171,7 @@ export default function ChatPage() {
         throw error instanceof EscrowDisputeError ? error : new EscrowDisputeError(message);
       }
     },
-    []
+    [publicKey, signTransaction]
   );
 
   const isSubmittingDispute =
@@ -185,6 +183,7 @@ export default function ChatPage() {
         <ChatScreen
           counterpartAddress={counterpartAddress}
           messages={messages}
+          onBack={() => router.back()}
           onSendMessage={handleSendMessage}
           onSendPayment={handleSendPayment}
           onViewReceipt={handleViewReceipt}

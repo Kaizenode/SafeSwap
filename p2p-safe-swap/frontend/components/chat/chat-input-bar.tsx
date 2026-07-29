@@ -15,7 +15,7 @@ export interface ChatInputBarProps {
 export function ChatInputBar({
   onSendMessage,
   onSendPayment,
-  placeholder = "Escribe un mensaje…",
+  placeholder = "Type a message…",
   disabled = false,
   className,
 }: ChatInputBarProps) {
@@ -50,19 +50,19 @@ export function ChatInputBar({
         "flex items-end gap-2 border-t border-border bg-background px-3 py-2.5",
         className
       )}
-      aria-label="Enviar mensaje o pago"
+      aria-label="Send message or payment"
     >
       <Button
         variant="primary"
         size="md"
-        label="Pagar"
+        label="Pay"
         onClick={onSendPayment}
         disabled={disabled}
-        aria-label="Enviar pago"
+        aria-label="Send payment"
       />
 
       <label className="sr-only" htmlFor="chat-input">
-        Mensaje
+        Message
       </label>
       <textarea
         id="chat-input"
@@ -83,9 +83,9 @@ export function ChatInputBar({
         type="submit"
         variant="primary"
         size="md"
-        label="Enviar"
+        label="Send"
         disabled={!canSend}
-        aria-label="Enviar mensaje"
+        aria-label="Send message"
       />
     </form>
   );

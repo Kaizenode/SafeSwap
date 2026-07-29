@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { P2POrderList } from "@/frontend/components/p2p";
 import { ChatScreen } from "@/frontend/components/chat/chat-screen";
 import { RaiseDisputeDialog } from "@/frontend/components/chat";
@@ -15,6 +16,7 @@ import {
   raiseEscrowDispute,
   type EscrowDisputeStatus,
 } from "@/frontend/lib/escrow-dispute";
+import { useWallet } from "@/frontend/lib/wallet-context";
 
 const USDC_TRUSTLINE = {
   address: "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
@@ -22,17 +24,6 @@ const USDC_TRUSTLINE = {
 };
 
 const PLATFORM_FEE = 1;
-
-const PLACEHOLDER_BUYER_ADDRESS = "PLACEHOLDER_BUYER_STELLAR_ADDRESS";
-const PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS = "PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS";
-
-async function mockSignTransaction(unsignedXdr: string): Promise<string> {
-  console.warn(
-    "[escrow-deployment] mockSignTransaction called — replace with real wallet signing",
-    { unsignedXdr }
-  );
-  throw new Error("Wallet signing is not yet integrated. Please connect a Stellar wallet.");
-}
 
 const MOCK_ORDERS: P2POrder[] = [
   {
@@ -100,7 +91,7 @@ const MOCK_MESSAGES: ChatMessage[] = [
   {
     id: "msg-1",
     type: "text",
-    text: "Hola, quiero comprar 1000 EUR",
+    text: "Hi, I want to buy 1000 EUR",
     author: "counterpart",
     timestamp: new Date(Date.now() - 3600000),
   },
@@ -127,11 +118,14 @@ const MOCK_MESSAGES: ChatMessage[] = [
 ];
 
 export default function OrdersPage() {
+  const router = useRouter();
+  const { publicKey, signTransaction } = useWallet();
   const [mode, setMode] = useState<OrderMode>("buy");
   const [orders, setOrders] = useState<P2POrder[]>(MOCK_ORDERS);
   const [deployStatus, setDeployStatus] = useState<
     Record<string, EscrowDeploymentStatus>
   >({});
+  const [deployError, setDeployError] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
   const [disputedOrders, setDisputedOrders] = useState<Record<string, boolean>>({});
@@ -149,9 +143,15 @@ export default function OrdersPage() {
         return;
       }
 
-      const sellerAddress = order.user.address;
-      const buyerAddress = PLACEHOLDER_BUYER_ADDRESS;
+      if (!publicKey) {
+        setDeployError("Connect your Stellar wallet before accepting an order");
+        return;
+      }
 
+      const sellerAddress = publicKey;
+      const buyerAddress = publicKey;
+
+      setDeployError(null);
       setDeployStatus((prev) => ({ ...prev, [orderId]: "deploying" }));
 
       try {
@@ -165,7 +165,7 @@ export default function OrdersPage() {
             platformFee: PLATFORM_FEE,
             trustline: order.trustline,
           },
-          mockSignTransaction,
+          signTransaction,
           (status) => setDeployStatus((prev) => ({ ...prev, [orderId]: status }))
         );
 
@@ -173,13 +173,18 @@ export default function OrdersPage() {
           prev.map((o) => (o.id === orderId ? { ...o, escrowContractId: contractId } : o))
         );
 
-        console.info(`[escrow-deployment] Escrow deployed for order ${orderId}:`, contractId);
+        window.localStorage.setItem(
+          `safeswap.trade.contractId.${orderId}`,
+          contractId
+        );
       } catch (error) {
         setDeployStatus((prev) => ({ ...prev, [orderId]: "failed" }));
+        const message = error instanceof Error ? error.message : "Failed to deploy escrow";
+        setDeployError(message);
         console.error(`[escrow-deployment] Failed to deploy escrow for order ${orderId}:`, error);
       }
     },
-    [orders]
+    [orders, publicKey, signTransaction]
   );
 
   const selectedOrder = selectedOrderId
@@ -209,16 +214,21 @@ export default function OrdersPage() {
         throw new EscrowDisputeError("The escrow contract has not been deployed yet");
       }
 
+      if (!publicKey) {
+        setDisputeError("Connect your Stellar wallet before opening a dispute");
+        throw new EscrowDisputeError("Connect your Stellar wallet before opening a dispute");
+      }
+
       setDisputeError(null);
 
       try {
         await raiseEscrowDispute(
           {
             contractId: order.escrowContractId,
-            signer: PLACEHOLDER_BUYER_ADDRESS,
+            signer: publicKey,
             reason,
           },
-          mockSignTransaction,
+          signTransaction,
           setDisputeStatus
         );
 
@@ -243,7 +253,7 @@ export default function OrdersPage() {
         throw error instanceof EscrowDisputeError ? error : new EscrowDisputeError(message);
       }
     },
-    [disputeDialogOrderId, orders]
+    [disputeDialogOrderId, orders, publicKey, signTransaction]
   );
 
   const isSubmittingDispute =
@@ -252,8 +262,7 @@ export default function OrdersPage() {
   if (selectedOrder) {
     const isSelectedDisputed = Boolean(disputedOrders[selectedOrder.id]);
     const canRaiseDispute =
-      Boolean(selectedOrder.escrowContractId) &&
-      PLACEHOLDER_BUYER_ADDRESS !== PLACEHOLDER_DISPUTE_RESOLVER_ADDRESS;
+      Boolean(selectedOrder.escrowContractId) && Boolean(publicKey);
 
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
@@ -327,6 +336,48 @@ export default function OrdersPage() {
           ))}
         </div>
       )}
+      {deployError ? (
+        <p
+          role="alert"
+          className="bg-destructive/10 px-4 py-2 text-xs text-destructive"
+        >
+          {deployError}
+        </p>
+      ) : null}
+
+      {orders
+        .filter((o) => o.escrowContractId)
+        .map((o) => (
+          <div
+            key={`deployed-${o.id}`}
+            className="flex flex-col gap-2 bg-primary/10 px-4 py-3 text-xs"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-semibold text-primary">
+                Escrow deployed for {o.id}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  navigator.clipboard.writeText(o.escrowContractId ?? "")
+                }
+                className="rounded-full border border-primary/40 px-2 py-1 text-[0.65rem] font-medium text-primary hover:bg-primary/10"
+              >
+                Copy contractId
+              </button>
+            </div>
+            <code className="break-all font-mono text-[0.7rem] text-foreground">
+              {o.escrowContractId}
+            </code>
+            <button
+              type="button"
+              onClick={() => router.push(`/trades/${o.id}`)}
+              className="self-start text-[0.7rem] font-medium text-primary underline underline-offset-2"
+            >
+              Continue to trade →
+            </button>
+          </div>
+        ))}
 
       <P2POrderList
         orders={orders}
@@ -339,6 +390,7 @@ export default function OrdersPage() {
           }
           setSelectedOrderId(orderId);
         }}
+        onOpenDetail={(orderId) => router.push(`/p2p/orders/${orderId}`)}
       />
     </main>
   );

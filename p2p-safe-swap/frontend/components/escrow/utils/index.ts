@@ -1,16 +1,16 @@
 import type { EscrowRoles } from "../types";
 
 export const ROLE_LABELS: Record<keyof EscrowRoles, string> = {
-  approver: "Aprobador",
-  serviceProvider: "Proveedor de servicio",
-  releaseSigner: "Firmante de liberación",
-  disputeResolver: "Resolutor de disputas",
-  receiver: "Receptor",
-  platformAddress: "Dirección de la plataforma",
+  approver: "Approver",
+  serviceProvider: "Service provider",
+  releaseSigner: "Release signer",
+  disputeResolver: "Dispute resolver",
+  receiver: "Receiver",
+  platformAddress: "Platform address",
 };
 
 export function formatAmount(value: number) {
-  return value.toLocaleString("es-ES", { maximumFractionDigits: 2 });
+  return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
 export function createMilestoneId() {

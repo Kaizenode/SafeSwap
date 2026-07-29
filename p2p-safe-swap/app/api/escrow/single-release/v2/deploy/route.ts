@@ -5,12 +5,9 @@ import {
   type DeploySingleReleaseV2Request,
 } from "@/lib/trustless-work";
 
-function getPlatformAddresses() {
-  const platformAddress = process.env.PLATFORM_WALLET_ADDRESS;
-  const disputeResolver = process.env.DISPUTE_RESOLVER_ADDRESS;
-
-  if (!platformAddress) throw new Error("PLATFORM_WALLET_ADDRESS is not set");
-  if (!disputeResolver) throw new Error("DISPUTE_RESOLVER_ADDRESS is not set");
+function getPlatformAddresses(fallbackSigner: string) {
+  const platformAddress = process.env.PLATFORM_WALLET_ADDRESS || fallbackSigner;
+  const disputeResolver = process.env.DISPUTE_RESOLVER_ADDRESS || fallbackSigner;
 
   return { platformAddress, disputeResolver };
 }
@@ -102,13 +99,7 @@ export async function POST(request: NextRequest) {
   const { signer, orderId, buyerAddress, sellerAddress, amount, platformFee, trustline } =
     validation.body;
 
-  let platformAddress: string;
-  let disputeResolver: string;
-  try {
-    ({ platformAddress, disputeResolver } = getPlatformAddresses());
-  } catch (error) {
-    return getErrorResponse(error);
-  }
+  const { platformAddress, disputeResolver } = getPlatformAddresses(signer);
 
   const deployPayload: DeploySingleReleaseV2Request = {
     signer,

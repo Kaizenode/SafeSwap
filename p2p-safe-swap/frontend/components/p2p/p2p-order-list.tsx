@@ -13,13 +13,14 @@ export interface P2POrderListProps {
   mode: OrderMode;
   onModeChange: (mode: OrderMode) => void;
   onBuy: (orderId: string) => void;
+  onOpenDetail?: (orderId: string) => void;
   className?: string;
 }
 
 const MODE_TABS: OrderMode[] = ["buy", "sell"];
 const MODE_LABELS: Record<OrderMode, string> = {
-  buy: "Comprar",
-  sell: "Vender",
+  buy: "Buy",
+  sell: "Sell",
 };
 
 function sortOrdersByBestPrice(orders: P2POrder[], mode: OrderMode) {
@@ -40,6 +41,7 @@ export function P2POrderList({
   mode,
   onModeChange,
   onBuy,
+  onOpenDetail,
   className,
 }: P2POrderListProps) {
   const sortedOrders = sortOrdersByBestPrice(orders, mode);
@@ -75,7 +77,7 @@ export function P2POrderList({
       >
         {sortedOrders.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center text-sm text-muted-foreground">
-            No hay órdenes disponibles en este momento.
+            No orders available at the moment.
           </div>
         ) : (
           sortedOrders.map((order, index) => (
@@ -91,9 +93,10 @@ export function P2POrderList({
                 maxLimit={order.limits.max}
                 windowMinutes={order.windowMinutes}
                 paymentMethods={order.paymentMethods}
-                lang="es"
+                lang="en"
                 mode={mode}
                 onBuy={() => onBuy(order.id)}
+                onSelect={onOpenDetail ? () => onOpenDetail(order.id) : undefined}
               />
             </Reveal>
           ))
