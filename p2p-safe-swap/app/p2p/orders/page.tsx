@@ -6,6 +6,8 @@ import { P2POrderList } from "@/frontend/components/p2p";
 import { ChatScreen } from "@/frontend/components/chat/chat-screen";
 import { RaiseDisputeDialog } from "@/frontend/components/chat";
 import type { OrderMode, P2POrder } from "@/frontend/components/p2p";
+import { ConnectWalletButton } from "@/frontend/components/wallet/ConnectWalletButton";
+import { EscrowStatusPanel } from "@/frontend/components/escrows";
 import type { ChatMessage } from "@/frontend/components/chat/types";
 import {
   deployEscrow,
@@ -327,6 +329,12 @@ export default function OrdersPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+      <div className="flex justify-end px-4 pt-4">
+        <ConnectWalletButton />
+      </div>
+
+      <EscrowStatusPanel />
+
       {Object.entries(deployStatus).some(([, status]) => status !== "idle") && (
         <div className="bg-muted/60 px-4 py-2 text-xs text-muted-foreground">
           {Object.entries(deployStatus).map(([id, status]) => (
