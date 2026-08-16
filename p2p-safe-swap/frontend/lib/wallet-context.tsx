@@ -1,29 +1,46 @@
 "use client";
 
 import * as React from "react";
+import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
 import {
-  isConnected as freighterIsConnected,
-  requestAccess,
-  getAddress,
-  signTransaction as freighterSignTransaction,
-  getNetwork,
-} from "@stellar/freighter-api";
+  FREIGHTER_ID,
+  FreighterModule,
+} from "@creit.tech/stellar-wallets-kit/modules/freighter";
+import {
+  WALLET_CONNECT_ID,
+  WalletConnectModule,
+  WalletConnectTargetChain,
+} from "@creit.tech/stellar-wallets-kit/modules/wallet-connect";
+import {
+  Networks,
+  type ISupportedWallet,
+  type ModuleInterface,
+} from "@creit.tech/stellar-wallets-kit/types";
 
-const TESTNET_PASSPHRASE = "Test SDF Network ; September 2015";
+export type WalletId = "freighter" | "lobstr";
 
-interface FreighterResult {
-  error?: { message?: string } | string;
-}
+export const FREIGHTER_WALLET_ID: WalletId = "freighter";
+export const LOBSTR_WALLET_ID: WalletId = "lobstr";
 
-function extractError(result: FreighterResult): string | null {
-  if (!result.error) return null;
-  if (typeof result.error === "string") return result.error;
-  return result.error.message ?? "Freighter error";
+const STELLAR_NETWORK =
+  (process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? "testnet").toLowerCase() ===
+  "mainnet"
+    ? Networks.PUBLIC
+    : Networks.TESTNET;
+
+const PUBLIC_KEY_STORAGE_KEY = "safeswap.wallet.publicKey";
+const WALLET_ID_STORAGE_KEY = "safeswap.wallet.id";
+const WALLETCONNECT_PAIRING_TIMEOUT_MS = 120_000;
+
+function toKitWalletId(walletId: WalletId): string {
+  return walletId === LOBSTR_WALLET_ID ? WALLET_CONNECT_ID : FREIGHTER_ID;
 }
 
 export class WalletNotInstalledError extends Error {
   constructor() {
-    super("Freighter extension is not installed. Get it at https://freighter.app");
+    super(
+      "Freighter extension is not installed. Get it at https://freighter.app"
+    );
     this.name = "WalletNotInstalledError";
   }
 }
@@ -35,98 +52,255 @@ export class WalletNotConnectedError extends Error {
   }
 }
 
+export class WalletConnectTimeoutError extends Error {
+  constructor() {
+    super(
+      "WalletConnect pairing timed out. Make sure the LOBSTR app is open and try again."
+    );
+    this.name = "WalletConnectTimeoutError";
+  }
+}
+
+export class WalletConnectNotConfiguredError extends Error {
+  constructor() {
+    super(
+      "LOBSTR requires NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID to be configured."
+    );
+    this.name = "WalletConnectNotConfiguredError";
+  }
+}
+
+let kitInitialized = false;
+let walletConnectModule: WalletConnectModule | null = null;
+
+function initKit(): void {
+  if (kitInitialized) return;
+
+  const modules: ModuleInterface[] = [new FreighterModule()];
+
+  const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+  if (projectId) {
+    walletConnectModule = new WalletConnectModule({
+      projectId,
+      metadata: {
+        name: "SafeSwap",
+        description: "Peer-to-peer USDC transfers on Stellar",
+        url:
+          typeof window !== "undefined"
+            ? window.location.origin
+            : "https://safeswap.app",
+        icons: [],
+      },
+      allowedChains: [
+        STELLAR_NETWORK === Networks.PUBLIC
+          ? WalletConnectTargetChain.PUBLIC
+          : WalletConnectTargetChain.TESTNET,
+      ],
+    });
+    modules.push(walletConnectModule);
+  }
+
+  StellarWalletsKit.init({
+    modules,
+    network: STELLAR_NETWORK,
+  });
+
+  kitInitialized = true;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new WalletConnectTimeoutError()),
+      ms
+    );
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 interface WalletContextValue {
   publicKey: string | null;
+  walletId: WalletId | null;
   network: string | null;
   isConnecting: boolean;
-  connect: () => Promise<void>;
-  disconnect: () => void;
+  connectWallet: (walletId: WalletId) => Promise<void>;
+  disconnect: () => Promise<void>;
   signTransaction: (unsignedXdr: string) => Promise<string>;
+  getSupportedWallets: () => Promise<ISupportedWallet[]>;
 }
 
 const WalletContext = React.createContext<WalletContextValue | null>(null);
 
-const STORAGE_KEY = "safeswap.wallet.publicKey";
-
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [publicKey, setPublicKey] = React.useState<string | null>(null);
+  const [walletId, setWalletId] = React.useState<WalletId | null>(null);
   const [network, setNetwork] = React.useState<string | null>(null);
   const [isConnecting, setIsConnecting] = React.useState(false);
 
+  const applyConnectedState = React.useCallback(
+    (id: WalletId, address: string) => {
+      setPublicKey(address);
+      setWalletId(id);
+      setNetwork(STELLAR_NETWORK);
+      window.localStorage.setItem(PUBLIC_KEY_STORAGE_KEY, address);
+      window.localStorage.setItem(WALLET_ID_STORAGE_KEY, id);
+    },
+    []
+  );
+
+  const clearConnectedState = React.useCallback(() => {
+    setPublicKey(null);
+    setWalletId(null);
+    setNetwork(null);
+    window.localStorage.removeItem(PUBLIC_KEY_STORAGE_KEY);
+    window.localStorage.removeItem(WALLET_ID_STORAGE_KEY);
+  }, []);
+
   React.useEffect(() => {
-    const stored =
-      typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
-    if (!stored) return;
+    initKit();
+
+    const storedId = window.localStorage.getItem(WALLET_ID_STORAGE_KEY);
+    if (!storedId) return;
 
     (async () => {
-      const connectedResult = await freighterIsConnected();
-      const connectedError = extractError(connectedResult);
-      if (connectedError || !connectedResult.isConnected) return;
+      try {
+        StellarWalletsKit.setWallet(toKitWalletId(storedId as WalletId));
+        const { address } = await StellarWalletsKit.getAddress();
+        if (address) {
+          applyConnectedState(storedId as WalletId, address);
+          return;
+        }
+      } catch {
+        // The kit has no persisted session (e.g. a fresh device). Fall back to a
+        // silent restore for Freighter so we don't re-prompt for access.
+      }
 
-      const addressResult = await getAddress();
-      const addressError = extractError(addressResult);
-      if (addressError || !addressResult.address) return;
-
-      setPublicKey(addressResult.address);
-
-      const networkResult = await getNetwork();
-      if (!extractError(networkResult) && networkResult.network) {
-        setNetwork(networkResult.network);
+      if (storedId === FREIGHTER_WALLET_ID) {
+        try {
+          const wallets = await StellarWalletsKit.refreshSupportedWallets();
+          const freighter = wallets.find(
+            (wallet) => wallet.id === FREIGHTER_ID
+          );
+          if (freighter?.isAvailable) {
+            const { address } = await StellarWalletsKit.fetchAddress();
+            if (address) {
+              applyConnectedState(FREIGHTER_WALLET_ID, address);
+            }
+          }
+        } catch {
+          // Ignore: the user can connect explicitly.
+        }
       }
     })();
-  }, []);
+  }, [applyConnectedState]);
 
-  const connect = React.useCallback(async () => {
-    setIsConnecting(true);
-    try {
-      const connectedResult = await freighterIsConnected();
-      const connectedError = extractError(connectedResult);
-      if (connectedError) throw new WalletNotInstalledError();
-      if (!connectedResult.isConnected) throw new WalletNotInstalledError();
+  const connectWallet = React.useCallback(
+    async (id: WalletId) => {
+      initKit();
+      setIsConnecting(true);
+      try {
+        if (id === LOBSTR_WALLET_ID && !walletConnectModule) {
+          throw new WalletConnectNotConfiguredError();
+        }
 
-      const accessResult = await requestAccess();
-      const accessError = extractError(accessResult);
-      if (accessError) throw new Error(accessError);
-      if (!accessResult.address) throw new Error("Freighter did not return an address");
+        StellarWalletsKit.setWallet(toKitWalletId(id));
 
-      setPublicKey(accessResult.address);
-      window.localStorage.setItem(STORAGE_KEY, accessResult.address);
+        if (id === LOBSTR_WALLET_ID) {
+          let result: { address: string };
+          try {
+            result = await withTimeout(
+              StellarWalletsKit.fetchAddress(),
+              WALLETCONNECT_PAIRING_TIMEOUT_MS
+            );
+          } catch (error) {
+            if (error instanceof WalletConnectTimeoutError) {
+              walletConnectModule?.modal.close();
+            }
+            throw error;
+          }
+          applyConnectedState(id, result.address);
+          return;
+        }
 
-      const networkResult = await getNetwork();
-      if (!extractError(networkResult) && networkResult.network) {
-        setNetwork(networkResult.network);
+        const wallets = await StellarWalletsKit.refreshSupportedWallets();
+        const freighter = wallets.find(
+          (wallet) => wallet.id === FREIGHTER_ID
+        );
+        if (!freighter?.isAvailable) {
+          throw new WalletNotInstalledError();
+        }
+        const { address } = await StellarWalletsKit.fetchAddress();
+        applyConnectedState(id, address);
+      } finally {
+        setIsConnecting(false);
       }
-    } finally {
-      setIsConnecting(false);
-    }
-  }, []);
+    },
+    [applyConnectedState]
+  );
 
-  const disconnect = React.useCallback(() => {
-    setPublicKey(null);
-    setNetwork(null);
-    window.localStorage.removeItem(STORAGE_KEY);
-  }, []);
+  const disconnect = React.useCallback(async () => {
+    initKit();
+    try {
+      await StellarWalletsKit.disconnect();
+    } finally {
+      clearConnectedState();
+    }
+  }, [clearConnectedState]);
 
   const signTransaction = React.useCallback(
     async (unsignedXdr: string): Promise<string> => {
       if (!publicKey) throw new WalletNotConnectedError();
 
-      const signed = await freighterSignTransaction(unsignedXdr, {
-        address: publicKey,
-        networkPassphrase: TESTNET_PASSPHRASE,
-      });
-      const signError = extractError(signed);
-      if (signError) throw new Error(signError);
-      if (!signed.signedTxXdr) throw new Error("Freighter did not return a signed XDR");
-
-      return signed.signedTxXdr;
+      const { signedTxXdr } = await StellarWalletsKit.signTransaction(
+        unsignedXdr,
+        {
+          address: publicKey,
+          networkPassphrase: STELLAR_NETWORK,
+        }
+      );
+      if (!signedTxXdr) {
+        throw new Error("Wallet did not return a signed XDR");
+      }
+      return signedTxXdr;
     },
     [publicKey]
   );
 
+  const getSupportedWallets = React.useCallback(async () => {
+    initKit();
+    return StellarWalletsKit.refreshSupportedWallets();
+  }, []);
+
   const value = React.useMemo(
-    () => ({ publicKey, network, isConnecting, connect, disconnect, signTransaction }),
-    [publicKey, network, isConnecting, connect, disconnect, signTransaction]
+    () => ({
+      publicKey,
+      walletId,
+      network,
+      isConnecting,
+      connectWallet,
+      disconnect,
+      signTransaction,
+      getSupportedWallets,
+    }),
+    [
+      publicKey,
+      walletId,
+      network,
+      isConnecting,
+      connectWallet,
+      disconnect,
+      signTransaction,
+      getSupportedWallets,
+    ]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

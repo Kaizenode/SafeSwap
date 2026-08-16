@@ -23,7 +23,7 @@
 | # | Title | Status | Owner | PR | Notes |
 |---|---|---|---|---|---|
 | 1 | Adopt `stellar-wallets-kit`, replace `freighter-api` | ⬜ | — | — | — |
-| 2 | Wallet picker modal (Freighter + LOBSTR) | ⬜ | — | — | — |
+| 2 | Wallet picker modal (Freighter + LOBSTR) | 🟨 | olatechy0 | — | Implemented via #375's kit adoption; branch `feat/374-wallet-picker-modal` |
 | 3 | `POST /api/auth/{nonce,verify,logout}` endpoints | ⬜ | — | — | — |
 | 4 | Auth middleware + `getSession()` helper | ⬜ | — | — | — |
 | 5 | Wire wallet connect → sign nonce → set session | ⬜ | — | — | — |
