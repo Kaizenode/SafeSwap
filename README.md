@@ -74,16 +74,19 @@ The UI is intentionally minimal — no unnecessary steps, no friction.
 
 3. **Environment Variables**:
 
-    Copy `.env.example` to `.env.local` in the relevant app folder and fill in your values:
+    Copy `.env.example` to `.env.local` in the P2P app folder and fill in your values:
 
     ```bash
-    cp p2p-safe-swap/.env.local p2p-safe-swap/.env.local
+    cp p2p-safe-swap/.env.example p2p-safe-swap/.env.local
     ```
 
-    Required variables:
+    Required Supabase variables (full setup guide: [`p2p-safe-swap/docs/SUPABASE-SETUP.md`](p2p-safe-swap/docs/SUPABASE-SETUP.md)):
     - `NEXT_PUBLIC_SUPABASE_URL` — your Supabase project URL
-    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — your Supabase anon key
-    - `TRUSTLESS_WORK_API_KEY` — your Trustless Work API key (server-side only)
+    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — your Supabase anon key (safe for the browser)
+    - `SUPABASE_SERVICE_ROLE_KEY` — your Supabase service role key (server-side only, never expose to the client)
+    - `TW_API_KEY` — your Trustless Work API key (server-side only)
+
+    > Never commit real keys. `.env.example` contains empty placeholders only.
 
 ---
 
@@ -91,6 +94,23 @@ The UI is intentionally minimal — no unnecessary steps, no friction.
 
 - `npm run dev` — Starts all applications in development mode.
 - `npm run build` — Builds all applications for production.
+
+---
+
+### Running Supabase migrations locally
+
+Migrations live in `p2p-safe-swap/supabase/migrations/`. With the [Supabase CLI](https://supabase.com/docs/guides/cli) and Docker installed:
+
+```bash
+cd p2p-safe-swap
+supabase start          # boot the local stack (Postgres, PostgREST, Studio)
+supabase db reset       # wipe + re-apply migrations and seed.sql
+supabase db push        # apply pending migrations to the linked remote project
+```
+
+`supabase db reset` must run cleanly from a wipe — it re-applies every migration
+in order. See [`p2p-safe-swap/docs/SUPABASE-SETUP.md`](p2p-safe-swap/docs/SUPABASE-SETUP.md)
+for project linking, environment variables, and the browser vs server clients.
 
 ---
 

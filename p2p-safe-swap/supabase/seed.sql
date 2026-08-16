@@ -1,0 +1,3 @@
+-- Seed data is added in Sprint 1 ticket #11 (seed script for local dev).
+-- Kept as a placeholder so `supabase db reset` matches the `supabase init`
+-- defaults without erroring.
