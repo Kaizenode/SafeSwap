@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@stellar/freighter-api": "^6.0.1",
+    "@creit.tech/stellar-wallets-kit": "^2.5.0",
     "@stellar/stellar-sdk": "^16.1.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",

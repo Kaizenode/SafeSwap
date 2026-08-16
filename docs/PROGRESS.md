@@ -22,7 +22,7 @@
 
 | # | Title | Status | Owner | PR | Notes |
 |---|---|---|---|---|---|
-| 1 | Adopt `stellar-wallets-kit`, replace `freighter-api` | ⬜ | — | — | — |
+| 1 | Adopt `stellar-wallets-kit`, replace `freighter-api` | 🟨 | @AbuJulaybeeb | — | In progress |
 | 2 | Wallet picker modal (Freighter + LOBSTR) | ⬜ | — | — | — |
 | 3 | `POST /api/auth/{nonce,verify,logout}` endpoints | ⬜ | — | — | — |
 | 4 | Auth middleware + `getSession()` helper | ⬜ | — | — | — |
@@ -86,7 +86,7 @@ When ready, create `SPRINT-4-ISSUES.md` and add a status table here in the same 
 
 | Sprint | Total | ⬜ | 🟨 | 🔵 | ⏸ | ✅ | 🚫 |
 |---|---|---|---|---|---|---|---|
-| 1 | 14 | 14 | 0 | 0 | 0 | 0 | 0 |
+| 1 | 14 | 13 | 1 | 0 | 0 | 0 | 0 |
 | 2 | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
 | 3 | — | — | — | — | — | — | — |
 | 4 | — | — | — | — | — | — | — |
