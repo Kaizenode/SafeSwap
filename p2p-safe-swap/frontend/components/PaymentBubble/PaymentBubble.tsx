@@ -16,6 +16,8 @@ export function PaymentBubble({
   onPay,
   onReject,
   onViewReceipt,
+  payLabel,
+  payDisabled,
 }: PaymentBubbleProperties) {
   const isSent = variant === "sent";
   const isDark = isSent;
@@ -74,7 +76,13 @@ export function PaymentBubble({
           </span>
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" label={t.reject} onClick={onReject} />
-            <Button variant="primary" size="sm" label={t.pay} onClick={onPay} />
+            <Button
+              variant="primary"
+              size="sm"
+              label={payLabel ?? t.pay}
+              onClick={onPay}
+              disabled={payDisabled}
+            />
           </div>
         </>}
 

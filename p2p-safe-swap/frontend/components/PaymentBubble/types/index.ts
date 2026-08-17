@@ -14,4 +14,6 @@ export interface PaymentBubbleProperties {
   onPay?:          () => void;
   onReject?:       () => void;
   onViewReceipt?:  () => void;
+  payLabel?:       string;
+  payDisabled?:    boolean;
 }

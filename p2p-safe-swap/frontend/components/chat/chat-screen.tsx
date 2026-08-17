@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PaymentBubble } from "@/frontend/components/PaymentBubble/PaymentBubble";
 import { ChatHeader } from "./chat-header";
@@ -23,6 +23,10 @@ export interface ChatScreenProps {
   onRaiseDispute?: () => void;
   canRaiseDispute?: boolean;
   isDisputed?: boolean;
+  isPaymentRequestReady?: boolean;
+  isAcceptingPaymentRequest?: boolean;
+  isPaymentApproved?: boolean;
+  paymentApprovalError?: string | null;
   isOnline?: boolean;
   lang?: "es" | "en";
   className?: string;
@@ -38,7 +42,9 @@ function renderMessage(
   message: ChatMessage,
   lang: "es" | "en",
   handlers: PaymentHandlers,
-  disablePaymentActions: boolean
+  disablePaymentActions: boolean,
+  isPaymentRequestReady: boolean,
+  isAcceptingPaymentRequest: boolean
 ) {
   if (message.type === "text") {
     return <ChatMessageBubble key={message.id} message={message} />;
@@ -48,6 +54,8 @@ function renderMessage(
   const isRequest = message.type === "request";
   const variant = isRequest ? "request" : "sent";
   const side = isSelf ? "sender" : "receiver";
+  const canAcceptRequest =
+    isRequest && !disablePaymentActions && isPaymentRequestReady && !isAcceptingPaymentRequest;
 
   return (
     <div
@@ -66,11 +74,13 @@ function renderMessage(
           status={message.status}
           side={side}
           lang={lang}
-          onPay={
-            isRequest && !disablePaymentActions
-              ? () => handlers.onAcceptPaymentRequest?.(message.id)
+          onPay={canAcceptRequest ? () => handlers.onAcceptPaymentRequest?.(message.id) : undefined}
+          payDisabled={
+            isRequest
+              ? disablePaymentActions || !isPaymentRequestReady || isAcceptingPaymentRequest
               : undefined
           }
+          payLabel={isRequest && isAcceptingPaymentRequest ? "Approving…" : undefined}
           onReject={
             isRequest && !disablePaymentActions
               ? () => handlers.onRejectPaymentRequest?.(message.id)
@@ -108,6 +118,10 @@ export function ChatScreen({
   onRaiseDispute,
   canRaiseDispute = true,
   isDisputed = false,
+  isPaymentRequestReady = true,
+  isAcceptingPaymentRequest = false,
+  isPaymentApproved = false,
+  paymentApprovalError = null,
   isOnline,
   lang = "en",
   className,
@@ -152,6 +166,26 @@ export function ChatScreen({
         </div>
       ) : null}
 
+      {isPaymentApproved ? (
+        <div
+          role="status"
+          className="flex items-center gap-2 border-b border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-medium text-primary"
+        >
+          <CheckCircle2 size={14} aria-hidden="true" />
+          <span>Approved, ready for release</span>
+        </div>
+      ) : null}
+
+      {paymentApprovalError ? (
+        <div
+          role="alert"
+          className="flex items-center gap-2 border-b border-destructive/30 bg-destructive/10 px-4 py-2.5 text-xs text-destructive"
+        >
+          <AlertTriangle size={14} aria-hidden="true" />
+          <span>{paymentApprovalError}</span>
+        </div>
+      ) : null}
+
       <div
         ref={scrollRef}
         role="log"
@@ -175,7 +209,14 @@ export function ChatScreen({
             >
               <DateSeparator label={group.dayLabel} />
               {group.messages.map((message) =>
-                renderMessage(message, lang, handlers, isDisputed)
+                renderMessage(
+                  message,
+                  lang,
+                  handlers,
+                  isDisputed,
+                  isPaymentRequestReady,
+                  isAcceptingPaymentRequest
+                )
               )}
             </section>
           ))

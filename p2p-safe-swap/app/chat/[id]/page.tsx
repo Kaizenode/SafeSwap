@@ -10,6 +10,11 @@ import {
   raiseEscrowDispute,
   type EscrowDisputeStatus,
 } from "@/frontend/lib/escrow-dispute";
+import {
+  approveEscrowMilestones,
+  EscrowApproveMilestonesError,
+  type EscrowApproveMilestonesStatus,
+} from "@/frontend/lib/escrow-approve-milestones";
 import { useWallet } from "@/frontend/lib/wallet-context";
 
 function createDate(daysAgo: number, hours: number, minutes: number): string {
@@ -84,6 +89,12 @@ const MOCK_ESCROW_CONTEXT = {
   contractId: "PLACEHOLDER_ESCROW_CONTRACT_ID",
 };
 
+const MILESTONE_INDEXES = [0];
+
+// Stand-in for the buyer's on-chain "mark milestone complete" signal
+// (change-milestone-status) until that flow is wired up separately.
+const MOCK_MILESTONE_STATUS: "pending" | "completed" = "completed";
+
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -95,8 +106,15 @@ export default function ChatPage() {
   const [disputeStatus, setDisputeStatus] = useState<EscrowDisputeStatus>("idle");
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [isDisputed, setIsDisputed] = useState(false);
+  const [milestoneStatus] = useState<"pending" | "completed">(MOCK_MILESTONE_STATUS);
+  const [approveStatus, setApproveStatus] = useState<EscrowApproveMilestonesStatus>("idle");
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   const canRaiseDispute = Boolean(publicKey);
+  const isMilestoneCompleted = milestoneStatus === "completed";
+  const isAcceptingPaymentRequest =
+    approveStatus === "requesting-signature" || approveStatus === "submitting";
+  const isPaymentApproved = approveStatus === "approved";
 
   const handleSendMessage = useCallback((text: string) => {
     console.log("[Chat] sendMessage", text);
@@ -110,9 +128,47 @@ export default function ChatPage() {
     console.log("[Chat] viewReceipt", messageId);
   }, []);
 
-  const handleAcceptPaymentRequest = useCallback((messageId: string) => {
-    console.log("[Chat] acceptPaymentRequest", messageId);
-  }, []);
+  const handleAcceptPaymentRequest = useCallback(
+    async (messageId: string) => {
+      if (!publicKey) {
+        setApproveError("Connect your Stellar wallet before approving");
+        return;
+      }
+      if (!isMilestoneCompleted) {
+        setApproveError("Waiting for the buyer to confirm payment before approving");
+        return;
+      }
+
+      setApproveError(null);
+
+      try {
+        await approveEscrowMilestones(
+          {
+            contractId: MOCK_ESCROW_CONTEXT.contractId,
+            approver: publicKey,
+            milestoneIndexes: MILESTONE_INDEXES,
+          },
+          signTransaction,
+          setApproveStatus
+        );
+
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === messageId && message.type === "request"
+              ? { ...message, status: "completed" }
+              : message
+          )
+        );
+      } catch (error) {
+        const message =
+          error instanceof EscrowApproveMilestonesError
+            ? error.message
+            : "Unable to approve milestone";
+        setApproveError(message);
+      }
+    },
+    [publicKey, signTransaction, isMilestoneCompleted]
+  );
 
   const handleRejectPaymentRequest = useCallback((messageId: string) => {
     console.log("[Chat] rejectPaymentRequest", messageId);
@@ -192,6 +248,10 @@ export default function ChatPage() {
           onRaiseDispute={handleRaiseDispute}
           canRaiseDispute={canRaiseDispute}
           isDisputed={isDisputed}
+          isPaymentRequestReady={isMilestoneCompleted}
+          isAcceptingPaymentRequest={isAcceptingPaymentRequest}
+          isPaymentApproved={isPaymentApproved}
+          paymentApprovalError={approveError}
           isOnline={true}
         />
       </Reveal>
