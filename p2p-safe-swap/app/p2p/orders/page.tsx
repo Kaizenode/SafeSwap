@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { P2POrderList } from "@/frontend/components/p2p";
 import { ChatScreen } from "@/frontend/components/chat/chat-screen";
 import { RaiseDisputeDialog } from "@/frontend/components/chat";
@@ -119,10 +119,15 @@ const MOCK_MESSAGES: ChatMessage[] = [
   },
 ];
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { publicKey, signTransaction } = useWallet();
-  const [mode, setMode] = useState<OrderMode>("buy");
+
+  const modeParam = searchParams.get("mode");
+  const mode: OrderMode = modeParam === "sell" ? "sell" : "buy";
+
   const [orders, setOrders] = useState<P2POrder[]>(MOCK_ORDERS);
   const [deployStatus, setDeployStatus] = useState<
     Record<string, EscrowDeploymentStatus>
@@ -134,6 +139,37 @@ export default function OrdersPage() {
   const [disputeDialogOrderId, setDisputeDialogOrderId] = useState<string | null>(null);
   const [disputeStatus, setDisputeStatus] = useState<EscrowDisputeStatus>("idle");
   const [disputeError, setDisputeError] = useState<string | null>(null);
+
+  const handleModeChange = useCallback(
+    (newMode: OrderMode) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("mode", newMode);
+      router.push(`${pathname}?${params.toString()}`);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("safeswap.preferred_mode", newMode);
+      }
+    },
+    [pathname, router, searchParams]
+  );
+
+  useEffect(() => {
+    let ignore = false;
+    async function fetchOrders() {
+      try {
+        const res = await fetch(`/api/orders?mode=${mode}`);
+        if (res.ok && !ignore) {
+          const data = (await res.json()) as P2POrder[];
+          setOrders(data);
+        }
+      } catch {
+        // Sprint 1 fallback to MOCK_ORDERS
+      }
+    }
+    void fetchOrders();
+    return () => {
+      ignore = true;
+    };
+  }, [mode]);
 
   const handleAcceptOrder = useCallback(
     async (orderId: string) => {
@@ -391,7 +427,7 @@ export default function OrdersPage() {
         orders={orders}
         bestPrice={BEST_PRICE}
         mode={mode}
-        onModeChange={setMode}
+        onModeChange={handleModeChange}
         onBuy={(orderId) => {
           if (mode === "sell") {
             void handleAcceptOrder(orderId);
@@ -401,5 +437,19 @@ export default function OrdersPage() {
         onOpenDetail={(orderId) => router.push(`/p2p/orders/${orderId}`)}
       />
     </main>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center">
+          <p className="text-sm text-muted-foreground">Loading orders...</p>
+        </main>
+      }
+    >
+      <OrdersPageContent />
+    </Suspense>
   );
 }
