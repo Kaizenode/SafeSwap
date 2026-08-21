@@ -14,7 +14,7 @@ export interface ConnectWalletButtonProps
   extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function ConnectWalletButton({ className, ...props }: ConnectWalletButtonProps) {
-  const { publicKey, isConnecting, connect, disconnect } = useWallet();
+  const { publicKey, isConnecting, isSigningIn, connect, disconnect } = useWallet();
   const [error, setError] = React.useState<string | null>(null);
 
   const handleConnect = React.useCallback(async () => {
@@ -66,7 +66,7 @@ export function ConnectWalletButton({ className, ...props }: ConnectWalletButton
         className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Wallet className="size-3.5" aria-hidden />
-        {isConnecting ? "Connecting…" : "Connect wallet"}
+        {isSigningIn ? "Signing in…" : isConnecting ? "Connecting…" : "Connect wallet"}
       </button>
       {error ? (
         <p role="alert" className="max-w-xs text-right text-[0.65rem] text-destructive">
