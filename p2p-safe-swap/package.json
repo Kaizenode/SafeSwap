@@ -6,10 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@creit.tech/stellar-wallets-kit": "^2.5.0",
+    "@sentry/nextjs": "^10.70.0",
+    "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^16.1.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
@@ -31,6 +33,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9",
+    "@types/jsonwebtoken": "^9.0.7",
+    "jsonwebtoken": "^9.0.2"
   }
 }

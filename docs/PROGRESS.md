@@ -31,7 +31,7 @@
 | 7 | Mode switcher in order-list header | ⬜ | — | — | — |
 | 8 | Bootstrap Supabase project + client wrappers | ⬜ | — | — | — |
 | 9 | Migration: initial schema (5 tables) | ⬜ | — | — | — |
-| 10 | Migration: RLS policies | ⬜ | — | — | — |
+| 10 | Migration: RLS policies | 🟨 | — | — | — |
 | 11 | Seed script for local dev | ⬜ | — | — | — |
 | 12 | Rotate leaked `TW_API_KEY` + scrub secrets | ⬜ | — | — | — |
 | 13 | Add Sentry (client + server) | ⬜ | — | — | — |

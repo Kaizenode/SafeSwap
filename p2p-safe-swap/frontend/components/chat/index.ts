@@ -10,6 +10,8 @@ export { DateSeparator } from "./date-separator";
 export type { DateSeparatorProps } from "./date-separator";
 export { RaiseDisputeDialog } from "./raise-dispute-dialog";
 export type { RaiseDisputeDialogProps } from "./raise-dispute-dialog";
+export { ResolveDisputeDialog } from "./resolve-dispute-dialog";
+export type { ResolveDisputeDialogProps } from "./resolve-dispute-dialog";
 export type {
   ChatMessage,
   ChatMessageBase,
