@@ -29,7 +29,7 @@
 | 5 | Wire wallet connect → sign nonce → set session | ⬜ | — | — | — |
 | 6 | `/onboarding/mode` page + redirect logic | ⬜ | — | — | — |
 | 7 | Mode switcher in order-list header | ⬜ | — | — | — |
-| 8 | Bootstrap Supabase project + client wrappers | ⬜ | — | — | — |
+| 8 | Bootstrap Supabase project + client wrappers | 🟨 | — | — | — |
 | 9 | Migration: initial schema (5 tables) | ⬜ | — | — | — |
 | 10 | Migration: RLS policies | 🟨 | — | — | — |
 | 11 | Seed script for local dev | ⬜ | — | — | — |
@@ -86,7 +86,7 @@ When ready, create `SPRINT-4-ISSUES.md` and add a status table here in the same 
 
 | Sprint | Total | ⬜ | 🟨 | 🔵 | ⏸ | ✅ | 🚫 |
 |---|---|---|---|---|---|---|---|
-| 1 | 14 | 13 | 1 | 0 | 0 | 0 | 0 |
+| 1 | 14 | 12 | 2 | 0 | 0 | 0 | 0 |
 | 2 | 10 | 10 | 0 | 0 | 0 | 0 | 0 |
 | 3 | — | — | — | — | — | — | — |
 | 4 | — | — | — | — | — | — | — |

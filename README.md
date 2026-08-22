@@ -118,6 +118,27 @@ Run individual applications directly from the root directory:
 
 ---
 
+### Database & Local Migrations
+
+SafeSwap uses Supabase for database management and Row Level Security (RLS). To run database migrations locally:
+
+1. **Start Local Supabase Stack**:
+    ```bash
+    supabase start
+    ```
+2. **Run Migrations & Reset Database**:
+    ```bash
+    supabase db reset
+    ```
+3. **Deploy Migrations to Remote Dev**:
+    ```bash
+    supabase db push
+    ```
+
+For full setup and environment details, see [docs/SUPABASE-SETUP.md](docs/SUPABASE-SETUP.md).
+
+---
+
 ## 📚 Documentation
 
 - [p2p-safe-swap README](p2p-safe-swap/README.md)
