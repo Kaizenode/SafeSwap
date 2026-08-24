@@ -6,6 +6,11 @@ import { ChatScreen, RaiseDisputeDialog } from "@/frontend/components/chat";
 import type { ChatMessage } from "@/frontend/components/chat";
 import { Reveal } from "@/frontend/components/motion/reveal";
 import {
+  approveEscrowMilestone,
+  EscrowApproveMilestoneError,
+  type EscrowApproveMilestoneStatus,
+} from "@/frontend/lib/escrow-approve-milestone";
+import {
   EscrowDisputeError,
   raiseEscrowDispute,
   type EscrowDisputeStatus,
@@ -69,14 +74,14 @@ const mockMessages: ChatMessage[] = [
     amount: 150,
     currency: "USDC",
     memo: "Remaining balance for the item",
-    status: "pending",
+    status: "completed",
   },
   {
     id: "7",
     type: "text",
     author: "counterpart",
     timestamp: createDate(1, 14, 35),
-    text: "Sent you the request for the remaining balance. Thanks!",
+    text: "I've marked the payment as completed. Please confirm receipt.",
   },
 ];
 
@@ -95,6 +100,8 @@ export default function ChatPage() {
   const [disputeStatus, setDisputeStatus] = useState<EscrowDisputeStatus>("idle");
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [isDisputed, setIsDisputed] = useState(false);
+  const [approveStatus, setApproveStatus] = useState<EscrowApproveMilestoneStatus>("idle");
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   const canRaiseDispute = Boolean(publicKey);
 
@@ -110,9 +117,45 @@ export default function ChatPage() {
     console.log("[Chat] viewReceipt", messageId);
   }, []);
 
-  const handleAcceptPaymentRequest = useCallback((messageId: string) => {
-    console.log("[Chat] acceptPaymentRequest", messageId);
-  }, []);
+  const handleAcceptPaymentRequest = useCallback(
+    async (messageId: string) => {
+      if (!publicKey) {
+        setApproveError("Connect your Stellar wallet before confirming payment");
+        return;
+      }
+
+      setApproveError(null);
+
+      try {
+        await approveEscrowMilestone(
+          {
+            contractId: MOCK_ESCROW_CONTEXT.contractId,
+            approver: publicKey,
+            milestoneIndexes: [0],
+          },
+          signTransaction,
+          setApproveStatus
+        );
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId && msg.type === "request"
+              ? { ...msg, status: "approved" as const }
+              : msg
+          )
+        );
+        setApproveStatus("idle");
+      } catch (error) {
+        const message =
+          error instanceof EscrowApproveMilestoneError
+            ? error.message
+            : "Unable to approve payment";
+        setApproveError(message);
+        setApproveStatus("failed");
+      }
+    },
+    [publicKey, signTransaction]
+  );
 
   const handleRejectPaymentRequest = useCallback((messageId: string) => {
     console.log("[Chat] rejectPaymentRequest", messageId);
@@ -177,6 +220,9 @@ export default function ChatPage() {
   const isSubmittingDispute =
     disputeStatus === "requesting-signature" || disputeStatus === "submitting";
 
+  const isSubmittingApprove =
+    approveStatus === "requesting-signature" || approveStatus === "submitting";
+
   return (
     <div className="mx-auto flex h-dvh w-full max-w-md flex-col bg-background">
       <Reveal className="flex flex-1 flex-col">
@@ -195,6 +241,26 @@ export default function ChatPage() {
           isOnline={true}
         />
       </Reveal>
+
+      {(approveError || isSubmittingApprove) && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 px-4">
+          {isSubmittingApprove && (
+            <div className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg">
+              {approveStatus === "requesting-signature"
+                ? "Waiting for wallet signature…"
+                : "Submitting approval…"}
+            </div>
+          )}
+          {approveError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive shadow-lg"
+            >
+              {approveError}
+            </div>
+          )}
+        </div>
+      )}
 
       <RaiseDisputeDialog
         open={isDisputeDialogOpen}

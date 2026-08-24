@@ -76,6 +76,11 @@ function renderMessage(
               ? () => handlers.onRejectPaymentRequest?.(message.id)
               : undefined
           }
+          onApprove={
+            isRequest && !disablePaymentActions
+              ? () => handlers.onAcceptPaymentRequest?.(message.id)
+              : undefined
+          }
           onViewReceipt={
             !isRequest
               ? () => handlers.onViewReceipt?.(message.id)

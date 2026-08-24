@@ -7,6 +7,7 @@ import { BottomNav } from "@/frontend/components/ui/bottom-nav";
 import { ThemeToggle } from "@/frontend/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/frontend/components/wallet/ConnectWalletButton";
 import { SetupTestnetButton } from "@/frontend/components/wallet/SetupTestnetButton";
+import { useOnboardingRedirect } from "@/frontend/lib/use-onboarding-redirect";
 
 export interface AppShellProps {
   children: ReactNode;
@@ -14,7 +15,9 @@ export interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const showNav = pathname !== "/";
+  useOnboardingRedirect();
+
+  const showNav = pathname !== "/" && !pathname.startsWith("/onboarding");
 
   return (
     <>
@@ -25,7 +28,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className={cn("flex flex-1 flex-col", showNav && "pb-16")}>
         {children}
       </div>
-      <BottomNav />
+      {showNav && <BottomNav />}
       <ThemeToggle
         className={cn("fixed right-4 z-50", showNav ? "bottom-20" : "bottom-4")}
       />
