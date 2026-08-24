@@ -4,6 +4,8 @@ import {
   TrustlessWorkApiError,
   type DeploySingleReleaseV2Request,
 } from "@/lib/trustless-work";
+import { withRequest } from "@/lib/log";
+import type { Logger } from "pino";
 
 function getPlatformAddresses(fallbackSigner: string) {
   const platformAddress = process.env.PLATFORM_WALLET_ADDRESS || fallbackSigner;
@@ -70,21 +72,29 @@ function validateBody(
   };
 }
 
-function getErrorResponse(error: unknown) {
+function getErrorResponse(error: unknown, log: Logger) {
   if (error instanceof TrustlessWorkApiError) {
+    log.error(
+      { status: error.status, details: error.details },
+      "trustless work API error on deploy"
+    );
     return NextResponse.json({ error: error.details }, { status: error.status });
   }
 
   const message =
     error instanceof Error ? error.message : "Unable to deploy escrow";
+  log.error({ err: error }, "unexpected error deploying escrow");
   return NextResponse.json({ error: message }, { status: 500 });
 }
 
 export async function POST(request: NextRequest) {
+  const log = withRequest(request);
+
   let raw: unknown;
   try {
     raw = await request.json();
   } catch {
+    log.warn("invalid JSON body on deploy");
     return NextResponse.json(
       { error: "Request body must be valid JSON" },
       { status: 400 }
@@ -93,6 +103,7 @@ export async function POST(request: NextRequest) {
 
   const validation = validateBody(raw);
   if (!validation.ok) {
+    log.warn({ reason: validation.message }, "deploy validation failed");
     return NextResponse.json({ error: validation.message }, { status: 400 });
   }
 
@@ -126,15 +137,20 @@ export async function POST(request: NextRequest) {
     trustline,
   };
 
+  log.info({ orderId, signer, amount }, "deploying single-release escrow");
+
   try {
     const data = await trustlessWork.escrow.deploySingleReleaseV2(deployPayload);
 
     if (!data.unsignedTransaction) {
+      log.error({ orderId, contractId: data.contractId }, "escrow service returned no unsignedTransaction");
       return NextResponse.json(
         { error: "Escrow service did not return a deployment transaction" },
         { status: 502 }
       );
     }
+
+    log.info({ orderId, contractId: data.contractId }, "escrow deployed");
 
     return NextResponse.json(
       {
@@ -144,6 +160,6 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    return getErrorResponse(error);
+    return getErrorResponse(error, log);
   }
 }
