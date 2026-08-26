@@ -1,24 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createNonce } from "@/lib/nonce-store";
 
-const nonces = new Map<string, { nonce: string; expiresAt: number }>();
-const TTL_MS = 5 * 60 * 1000;
+export async function POST(req: NextRequest) {
+  let body: { address?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-export function getNonce(address: string): { nonce: string; expiresAt: number } {
-  const value = { nonce: crypto.randomUUID(), expiresAt: Date.now() + TTL_MS };
-  nonces.set(address, value);
-  return value;
-}
-
-export function consumeNonce(address: string): string | null {
-  const value = nonces.get(address);
-  nonces.delete(address);
-  return value && value.expiresAt > Date.now() ? value.nonce : null;
-}
-
-export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as { address?: unknown } | null;
-  if (typeof body?.address !== "string" || !body.address.trim()) {
+  const { address } = body;
+  if (!address || typeof address !== "string") {
     return NextResponse.json({ error: "address is required" }, { status: 400 });
   }
-  return NextResponse.json(getNonce(body.address));
+
+  const { nonce, expiresAt } = createNonce(address);
+  return NextResponse.json({ nonce, expiresAt: new Date(expiresAt).toISOString() });
 }

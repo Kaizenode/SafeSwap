@@ -1,45 +1,105 @@
+import { NextRequest, NextResponse } from "next/server";
 import { Keypair } from "@stellar/stellar-sdk";
-import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
-import { SESSION_COOKIE, sessionToken } from "@/lib/auth/session";
-import { consumeNonce } from "../nonce/route";
+import { peekNonce, deleteNonce } from "@/lib/nonce-store";
+import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
+interface VerifyRequestBody {
+  address?: string;
+  signedNonce?: string;
+}
 
-export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as {
-    address?: unknown;
-    signedNonce?: unknown;
-  } | null;
-  if (typeof body?.address !== "string" || typeof body.signedNonce !== "string") {
-    return NextResponse.json({ error: "address and signedNonce are required" }, { status: 400 });
+async function persistUser(address: string): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return false;
   }
 
-  const nonce = consumeNonce(body.address);
-  if (!nonce) return NextResponse.json({ error: "Invalid or expired nonce" }, { status: 400 });
+  const response = await fetch(`${supabaseUrl}/rest/v1/users?on_conflict=address`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify({ address }),
+  });
+
+  return response.ok;
+}
+
+function verifyStellarSignature(
+  address: string,
+  message: string,
+  signatureBase64: string
+): boolean {
+  try {
+    const keypair = Keypair.fromPublicKey(address);
+    const messageBuffer = Buffer.from(message, "utf-8");
+    const signatureBuffer = Buffer.from(signatureBase64, "base64");
+    return keypair.verify(messageBuffer, signatureBuffer);
+  } catch {
+    // Malformed address or signature -> treat as invalid, not a 500.
+    return false;
+  }
+}
+
+export async function POST(req: NextRequest) {
+  let body: VerifyRequestBody;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { address, signedNonce } = body;
+  if (!address || typeof address !== "string" || !signedNonce || typeof signedNonce !== "string") {
+    return NextResponse.json(
+      { error: "address and signedNonce are required" },
+      { status: 400 }
+    );
+  }
+
+  const entry = peekNonce(address);
+  if (!entry) {
+    return NextResponse.json(
+      { error: "No pending nonce for this address. Request a new one." },
+      { status: 400 }
+    );
+  }
+
+  // Burn the nonce on first use regardless of outcome — this is what makes
+  // "reusing a consumed nonce" fail with 400, and it also stops someone from
+  // hammering signature attempts against the same nonce.
+  deleteNonce(address);
+
+  if (entry.expiresAt <= Date.now()) {
+    return NextResponse.json({ error: "Nonce expired. Request a new one." }, { status: 400 });
+  }
+
+  if (!verifyStellarSignature(address, entry.nonce, signedNonce)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
 
   try {
-    const keypair = Keypair.fromPublicKey(body.address);
-    const signature = Buffer.from(body.signedNonce, "base64");
-    if (!keypair.verify(Buffer.from(nonce, "utf8"), signature)) {
-      return NextResponse.json({ error: "Invalid wallet signature" }, { status: 401 });
+    if (!(await persistUser(address))) {
+      return NextResponse.json({ error: "Failed to persist user" }, { status: 500 });
     }
-
-    const { data: user, error } = await supabaseServer
-      .from("users")
-      .upsert({ address: body.address }, { onConflict: "address" })
-      .select()
-      .single();
-    if (error) return NextResponse.json({ error: "Unable to create user session" }, { status: 500 });
-
-    const response = NextResponse.json({ user });
-    response.cookies.set(SESSION_COOKIE, sessionToken(body.address), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-    });
-    return response;
   } catch {
-    return NextResponse.json({ error: "Invalid wallet address or signature" }, { status: 400 });
+    return NextResponse.json({ error: "Failed to persist user" }, { status: 500 });
   }
+
+  const token = await createSessionToken({ address });
+
+  const res = NextResponse.json({ address });
+  res.cookies.set(SESSION_COOKIE.name, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: SESSION_COOKIE.maxAgeSeconds,
+    path: "/",
+  });
+
+  return res;
 }

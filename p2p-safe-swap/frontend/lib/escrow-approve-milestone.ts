@@ -14,7 +14,7 @@ export type EscrowApproveMilestoneStatus =
 export interface ApproveMilestoneInput {
   contractId: string;
   approver: string;
-  milestoneIndex: string;
+  milestoneIndexes: number[];
 }
 
 export type SignEscrowTransaction = SignTransaction;
@@ -44,10 +44,15 @@ async function readError(response: Response): Promise<string> {
   }
 }
 
-function validateInput({ contractId, approver, milestoneIndex }: ApproveMilestoneInput) {
-  if (!contractId.trim() || !approver.trim() || !milestoneIndex.trim()) {
+function validateInput({ contractId, approver, milestoneIndexes }: ApproveMilestoneInput) {
+  if (!contractId.trim() || !approver.trim()) {
     throw new EscrowApproveMilestoneError(
-      "A contract ID, approver, and milestone index are required"
+      "A contract ID and approver are required"
+    );
+  }
+  if (!Array.isArray(milestoneIndexes) || milestoneIndexes.length === 0) {
+    throw new EscrowApproveMilestoneError(
+      "At least one milestone index is required"
     );
   }
 }
@@ -72,7 +77,7 @@ export async function approveEscrowMilestone(
 ): Promise<void> {
   validateInput(input);
 
-  const approveResponse = await fetch("/api/escrow/single-release/v2/approve-milestone", {
+  const approveResponse = await fetch("/api/escrow/single-release/v2/approve-milestones", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
