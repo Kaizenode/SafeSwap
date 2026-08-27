@@ -2,21 +2,12 @@ import "server-only";
 import { jwtVerify, type JWTPayload } from "jose";
 import type { NextRequest } from "next/server";
 
-/**
- * Name of the HttpOnly cookie set by POST /api/auth/verify.
- * Kept in one place so nothing else has to hardcode the string.
- */
 export const SESSION_COOKIE_NAME = "safeswap.session";
 
 export interface Session {
   address: string;
 }
 
-/**
- * Thrown by requireSession() when there is no valid session.
- * Route handlers should catch this and turn it into a
- * NextResponse.json({ error: err.message }, { status: err.status }).
- */
 export class AuthError extends Error {
   readonly status: number;
 
@@ -30,7 +21,6 @@ export class AuthError extends Error {
 function getSecretKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
-    // Fail loudly in dev/CI rather than silently rejecting every session.
     throw new Error(
       "SESSION_SECRET is not set. Add it to your environment (see .env.example)."
     );
@@ -38,11 +28,6 @@ function getSecretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-/**
- * Reads the session cookie off either a NextRequest (route handlers,
- * middleware) or a plain Request (e.g. in tests). Returns undefined
- * if the cookie isn't present.
- */
 function readSessionCookie(request: NextRequest | Request): string | undefined {
   const maybeNextRequest = request as Partial<NextRequest>;
   if (typeof maybeNextRequest.cookies?.get === "function") {
@@ -61,11 +46,6 @@ function readSessionCookie(request: NextRequest | Request): string | undefined {
   return undefined;
 }
 
-/**
- * The verify() route may put the wallet address in a custom `address`
- * claim or in the standard `sub` claim — accept either so this helper
- * doesn't silently break if that choice changes.
- */
 function readAddress(payload: JWTPayload): string | null {
   const { address, sub } = payload as { address?: unknown; sub?: unknown };
   if (typeof address === "string" && address.length > 0) return address;
@@ -73,12 +53,6 @@ function readAddress(payload: JWTPayload): string | null {
   return null;
 }
 
-/**
- * Resolves the current session from the request cookie.
- * Never throws for "no session" cases — a missing cookie, an expired
- * token, and a bad signature all resolve to null. Only a missing
- * SESSION_SECRET (a config error, not a caller error) throws.
- */
 export async function getSession(
   request: NextRequest | Request
 ): Promise<Session | null> {
@@ -90,22 +64,14 @@ export async function getSession(
     const address = readAddress(payload);
     return address ? { address } : null;
   } catch {
-    // Malformed, expired, or invalid signature — treat as unauthenticated.
     return null;
   }
 }
 
-/**
- * Same as getSession(), but throws AuthError (401) instead of
- * returning null. Use this in any route that should reject
- * unauthenticated callers.
- */
 export async function requireSession(
   request: NextRequest | Request
 ): Promise<Session> {
   const session = await getSession(request);
-  if (!session) {
-    throw new AuthError();
-  }
+  if (!session) throw new AuthError();
   return session;
 }

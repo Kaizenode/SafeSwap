@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AuthError, requireSession } from "@/lib/auth/session";
-// NOTE: adjust this import to match how lib/supabase.ts actually exports
-// its client (e.g. `import { supabase } from "@/lib/supabase"` vs a
-// `createClient()` factory). Wire up whichever is already in the file.
-import { supabase } from "@/lib/supabase";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export async function GET(request: NextRequest) {
   try {
-    const { address } = await requireSession(request);
+    const token = request.cookies.get(SESSION_COOKIE.name)?.value;
+    const session = token ? await verifySessionToken(token) : null;
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseServer
       .from("users")
       .select("*")
-      .eq("address", address)
+      .eq("address", session.address)
       .maybeSingle();
 
     if (error) {
@@ -24,16 +25,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (!user) {
-      // Valid cookie, but no matching users row (shouldn't happen once
-      // POST /api/auth/verify upserts on first sign-in — fail closed).
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     return NextResponse.json(user);
   } catch (err) {
-    if (err instanceof AuthError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
     console.error("[GET /api/auth/me] unexpected error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
