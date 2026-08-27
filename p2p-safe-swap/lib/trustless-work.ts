@@ -95,6 +95,12 @@ export interface ApproveMilestoneRequest {
   approver: string;
 }
 
+export interface ApproveMilestonesRequest {
+  contractId: string;
+  approver: string;
+  milestoneIndexes: number[];
+}
+
 export interface ChangeMilestoneStatusRequest {
   contractId: string;
   milestoneIndex: string;
@@ -223,6 +229,15 @@ export const trustlessWork = {
     approveMilestone: (body: ApproveMilestoneRequest) =>
       request<{ unsignedTransaction?: string; status?: string }>(
         "/escrow/single-release/approve-milestone",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
+
+    approveMilestones: (body: ApproveMilestonesRequest) =>
+      request<{ unsignedTransaction?: string; status?: string }>(
+        "/escrow/single-release/v2/approve-milestones",
         {
           method: "POST",
           body: JSON.stringify(body),

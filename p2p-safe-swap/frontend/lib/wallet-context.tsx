@@ -2,22 +2,13 @@
 
 import * as React from "react";
 import {
-  StellarWalletsKit,
-  Networks,
-  FREIGHTER_ID,
-} from "@creit.tech/stellar-wallets-kit";
-import { FreighterModule } from "@creit.tech/stellar-wallets-kit/modules/freighter";
-import { LobstrModule } from "@creit.tech/stellar-wallets-kit/modules/lobstr";
-
-const TESTNET_PASSPHRASE = Networks?.TESTNET || "Test SDF Network ; September 2015";
-const MAINNET_PASSPHRASE = Networks?.PUBLIC || "Public Global Stellar Network ; July 2015";
-
-function getNetworkPassphrase(): string {
-  const envNetwork = (process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet").toLowerCase();
-  return envNetwork === "mainnet" || envNetwork === "public"
-    ? MAINNET_PASSPHRASE
-    : TESTNET_PASSPHRASE;
-}
+  isConnected as freighterIsConnected,
+  requestAccess,
+  getAddress,
+  signMessage as freighterSignMessage,
+  signTransaction as freighterSignTransaction,
+  getNetwork,
+} from "@stellar/freighter-api";
 
 let isKitInitialized = false;
 
@@ -58,6 +49,7 @@ interface WalletContextValue {
   publicKey: string | null;
   network: string | null;
   isConnecting: boolean;
+  isSigningIn: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   signTransaction: (unsignedXdr: string) => Promise<string>;
@@ -66,37 +58,36 @@ interface WalletContextValue {
 const WalletContext = React.createContext<WalletContextValue | null>(null);
 
 const STORAGE_KEY = "safeswap.wallet.publicKey";
+const SESSION_KEY = "safeswap.session.established";
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [publicKey, setPublicKey] = React.useState<string | null>(null);
   const [network, setNetwork] = React.useState<string | null>(null);
   const [isConnecting, setIsConnecting] = React.useState(false);
+  const [isSigningIn, setIsSigningIn] = React.useState(false);
 
   React.useEffect(() => {
-    const stored =
-      typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
-    if (!stored) return;
-
     (async () => {
-      try {
-        ensureKitInitialized(FREIGHTER_ID);
-        const { address } = await StellarWalletsKit.fetchAddress();
-        if (!address) return;
+      const sessionResponse = await fetch("/api/auth/me").catch(() => null);
+      if (!sessionResponse?.ok) return;
 
-        setPublicKey(address);
+      const session = (await sessionResponse.json()) as { address?: string };
+      if (!session.address) return;
 
-        try {
-          const net = await StellarWalletsKit.getNetwork();
-          if (net?.networkPassphrase) {
-            setNetwork(net.networkPassphrase);
-          } else {
-            setNetwork(getNetworkPassphrase());
-          }
-        } catch {
-          setNetwork(getNetworkPassphrase());
-        }
-      } catch {
-        // If reconnecting stored session fails or is not authorized yet, ignore
+      const connectedResult = await freighterIsConnected();
+      const connectedError = extractError(connectedResult);
+      if (connectedError || !connectedResult.isConnected) return;
+
+      const addressResult = await getAddress();
+      const addressError = extractError(addressResult);
+      if (addressError || !addressResult.address || addressResult.address !== session.address) return;
+
+      setPublicKey(addressResult.address);
+      window.localStorage.setItem(SESSION_KEY, "true");
+
+      const networkResult = await getNetwork();
+      if (!extractError(networkResult) && networkResult.network) {
+        setNetwork(networkResult.network);
       }
     })();
   }, []);
@@ -104,45 +95,61 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const connect = React.useCallback(async () => {
     setIsConnecting(true);
     try {
-      ensureKitInitialized(FREIGHTER_ID);
-      StellarWalletsKit.setWallet(FREIGHTER_ID);
+      const connectedResult = await freighterIsConnected();
+      const connectedError = extractError(connectedResult);
+      if (connectedError) throw new WalletNotInstalledError();
+      if (!connectedResult.isConnected) throw new WalletNotInstalledError();
 
-      let address: string | null = null;
-      try {
-        const result = await StellarWalletsKit.fetchAddress();
-        address = result?.address || null;
-      } catch (err: any) {
-        const msg = err?.message || String(err);
-        if (
-          msg.toLowerCase().includes("not installed") ||
-          msg.toLowerCase().includes("freighter") ||
-          msg.toLowerCase().includes("extension")
-        ) {
-          throw new WalletNotInstalledError();
-        }
-        throw err;
+      const accessResult = await requestAccess();
+      const accessError = extractError(accessResult);
+      if (accessError) throw new Error(accessError);
+      if (!accessResult.address) throw new Error("Freighter did not return an address");
+
+      setIsSigningIn(true);
+      const nonceResponse = await fetch("/api/auth/nonce", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: accessResult.address }),
+      });
+      if (!nonceResponse.ok) throw new Error("Unable to start wallet sign-in");
+
+      const nonceData = (await nonceResponse.json()) as { nonce?: string };
+      if (!nonceData.nonce) throw new Error("Sign-in service did not return a nonce");
+
+      const signed = await freighterSignMessage(nonceData.nonce, {
+        address: accessResult.address,
+        networkPassphrase: TESTNET_PASSPHRASE,
+      });
+      const signError = extractError(signed);
+      if (signError) throw new Error(signError);
+      if (!signed.signedMessage) throw new Error("Freighter did not return a signed message");
+
+      const verifyResponse = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: accessResult.address, signedNonce: signed.signedMessage }),
+      });
+      if (!verifyResponse.ok) {
+        const body = (await verifyResponse.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Unable to verify wallet sign-in");
       }
 
-      if (!address) {
-        throw new Error("Wallet did not return an address");
-      }
+      setPublicKey(accessResult.address);
+      window.localStorage.setItem(STORAGE_KEY, accessResult.address);
+      window.localStorage.setItem(SESSION_KEY, "true");
 
-      setPublicKey(address);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, address);
+      const networkResult = await getNetwork();
+      if (!extractError(networkResult) && networkResult.network) {
+        setNetwork(networkResult.network);
       }
-
-      try {
-        const net = await StellarWalletsKit.getNetwork();
-        if (net?.networkPassphrase) {
-          setNetwork(net.networkPassphrase);
-        } else {
-          setNetwork(getNetworkPassphrase());
-        }
-      } catch {
-        setNetwork(getNetworkPassphrase());
-      }
+    } catch (error) {
+      setPublicKey(null);
+      setNetwork(null);
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(SESSION_KEY);
+      throw error;
     } finally {
+      setIsSigningIn(false);
       setIsConnecting(false);
     }
   }, []);
@@ -150,16 +157,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const disconnect = React.useCallback(() => {
     setPublicKey(null);
     setNetwork(null);
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-    if (isKitInitialized) {
-      try {
-        StellarWalletsKit.disconnect();
-      } catch {
-        // Ignore disconnect cleanup errors
-      }
-    }
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(SESSION_KEY);
+    void fetch("/api/auth/logout", { method: "POST" });
   }, []);
 
   const signTransaction = React.useCallback(
@@ -184,8 +184,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = React.useMemo(
-    () => ({ publicKey, network, isConnecting, connect, disconnect, signTransaction }),
-    [publicKey, network, isConnecting, connect, disconnect, signTransaction]
+    () => ({ publicKey, network, isConnecting, isSigningIn, connect, disconnect, signTransaction }),
+    [publicKey, network, isConnecting, isSigningIn, connect, disconnect, signTransaction]
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

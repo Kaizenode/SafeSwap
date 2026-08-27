@@ -16,6 +16,7 @@ export function PaymentBubble({
   onPay,
   onReject,
   onViewReceipt,
+  onApprove,
 }: PaymentBubbleProperties) {
   const isSent = variant === "sent";
   const isDark = isSent;
@@ -57,7 +58,15 @@ export function PaymentBubble({
 
       <div className={`px-4 py-3 flex items-center justify-between ${isDark ? "bg-white/5" : "bg-muted"}`}>
 
-        {status === "completed" && <>
+        {status === "completed" && variant === "request" && <>
+          <span className={`flex items-center gap-1 text-xs ${isDark ? "text-chat-bubble-outgoing-foreground/70" : "text-muted-foreground"}`}>
+            <Check size={14} />
+            {t.completed}
+          </span>
+          <Button variant="primary" size="sm" label={t.approve} onClick={onApprove} />
+        </>}
+
+        {status === "completed" && variant !== "request" && <>
           <span className={`flex items-center gap-1 text-xs ${isDark ? "text-chat-bubble-outgoing-foreground/70" : "text-muted-foreground"}`}>
             <Check size={14} />
             {t.completed}
@@ -65,6 +74,13 @@ export function PaymentBubble({
           <button onClick={onViewReceipt} className={`flex items-center gap-1 text-xs transition-colors cursor-pointer ${isDark ? "text-chat-bubble-outgoing-foreground/70 hover:text-chat-bubble-outgoing-foreground" : "text-muted-foreground hover:text-foreground"}`}>
             {t.viewReceipt} <ArrowRight size={12} />
           </button>
+        </>}
+
+        {status === "approved" && <>
+          <span className={`flex items-center gap-1 text-xs font-medium ${isDark ? "text-primary" : "text-primary"}`}>
+            <Check size={14} />
+            {t.approved}
+          </span>
         </>}
 
         {status === "pending" && variant === "request" && <>
