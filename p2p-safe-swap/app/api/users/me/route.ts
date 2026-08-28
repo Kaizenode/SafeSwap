@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase/browser";
 
 export async function GET(request: NextRequest) {
   const address = request.nextUrl.searchParams.get("address") || request.cookies.get("safeswap.address")?.value;
