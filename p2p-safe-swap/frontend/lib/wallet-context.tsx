@@ -10,16 +10,25 @@ import {
   getNetwork,
 } from "@stellar/freighter-api";
 
-const TESTNET_PASSPHRASE = "Test SDF Network ; September 2015";
+let isKitInitialized = false;
 
-interface FreighterResult {
-  error?: { message?: string } | string;
-}
+function ensureKitInitialized(selectedWalletId: string = FREIGHTER_ID) {
+  if (typeof window === "undefined") return;
 
-function extractError(result: FreighterResult): string | null {
-  if (!result.error) return null;
-  if (typeof result.error === "string") return result.error;
-  return result.error.message ?? "Freighter error";
+  if (isKitInitialized) {
+    if (selectedWalletId) {
+      StellarWalletsKit.setWallet(selectedWalletId);
+    }
+    return;
+  }
+
+  const passphrase = getNetworkPassphrase();
+  StellarWalletsKit.init({
+    network: passphrase as any,
+    selectedWalletId,
+    modules: [new FreighterModule(), new LobstrModule()],
+  });
+  isKitInitialized = true;
 }
 
 export class WalletNotInstalledError extends Error {
@@ -157,15 +166,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     async (unsignedXdr: string): Promise<string> => {
       if (!publicKey) throw new WalletNotConnectedError();
 
-      const signed = await freighterSignTransaction(unsignedXdr, {
-        address: publicKey,
-        networkPassphrase: TESTNET_PASSPHRASE,
-      });
-      const signError = extractError(signed);
-      if (signError) throw new Error(signError);
-      if (!signed.signedTxXdr) throw new Error("Freighter did not return a signed XDR");
+      ensureKitInitialized(FREIGHTER_ID);
+      const networkPassphrase = getNetworkPassphrase();
 
-      return signed.signedTxXdr;
+      const result = await StellarWalletsKit.signTransaction(unsignedXdr, {
+        address: publicKey,
+        networkPassphrase,
+      });
+
+      if (!result?.signedTxXdr) {
+        throw new Error("Wallet did not return a signed XDR");
+      }
+
+      return result.signedTxXdr;
     },
     [publicKey]
   );
