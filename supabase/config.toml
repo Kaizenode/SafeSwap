@@ -1,0 +1,38 @@
+# supabase/config.toml
+#
+# Local Supabase CLI configuration for SafeSwap.
+# Generated with `supabase init`; tune ports/settings for your machine.
+# Docs: docs/SUPABASE-SETUP.md
+
+# The project ref used by `supabase link` for local ↔ remote mapping.
+project_id = "safeswap"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_signup = true
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"

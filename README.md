@@ -83,7 +83,33 @@ The UI is intentionally minimal — no unnecessary steps, no friction.
     Required variables:
     - `NEXT_PUBLIC_SUPABASE_URL` — your Supabase project URL
     - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — your Supabase anon key
+    - `SUPABASE_SERVICE_ROLE_KEY` — your Supabase service role key (server-side only)
     - `TRUSTLESS_WORK_API_KEY` — your Trustless Work API key (server-side only)
+
+    Full Supabase setup (projects, CLI, and client wrappers) is documented in
+    [`docs/SUPABASE-SETUP.md`](docs/SUPABASE-SETUP.md).
+
+### Running Supabase migrations locally
+
+The repo ships Supabase CLI configuration in `supabase/config.toml` with
+migrations in `supabase/migrations/` and a local dev seed in
+`supabase/seed.sql`.
+
+1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli).
+2. Start the local stack and apply all migrations + seed:
+
+    ```bash
+    supabase start
+    supabase db reset
+    ```
+
+    Or from the app folder: `npm run db:reset`.
+
+3. Push migrations to a linked remote project (dev/prod) with
+   `supabase db push`.
+
+See [`docs/SUPABASE-SETUP.md`](docs/SUPABASE-SETUP.md) for CLI linking,
+environment variables, and the browser/server client wrappers.
 
 ---
 
