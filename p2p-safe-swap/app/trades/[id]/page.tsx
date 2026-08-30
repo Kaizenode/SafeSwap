@@ -34,7 +34,7 @@ interface TradeStatusPageProps {
 
 const TRADE_AMOUNT = 240;
 const TRADE_CURRENCY = "USDC";
-const MILESTONE_INDEX = "0";
+const MILESTONE_INDEXES = [0];
 
 function initialSteps(): EscrowStep[] {
   return [
@@ -202,7 +202,7 @@ export default function TradeStatusPage({ params }: TradeStatusPageProps) {
         {
           contractId,
           approver: publicKey,
-          milestoneIndex: MILESTONE_INDEX,
+          milestoneIndexes: MILESTONE_INDEXES,
         },
         signTransaction,
         setApproveStatus

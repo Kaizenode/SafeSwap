@@ -12,7 +12,7 @@ export interface TextMessage extends ChatMessageBase {
   deliveryStatus?: "sent" | "delivered" | "read";
 }
 
-export type PaymentStatus = "pending" | "completed" | "rejected";
+export type PaymentStatus = "pending" | "completed" | "rejected" | "approved";
 
 export interface PaymentMessage extends ChatMessageBase {
   type: "payment";

@@ -1,53 +1,78 @@
 "use client";
 
 import * as React from "react";
-import { StellarWalletsKit } from "@creit.tech/stellar-wallets-kit/sdk";
-import { ButtonMode } from "@creit.tech/stellar-wallets-kit/components";
+import { Wallet, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWallet } from "@/frontend/lib/wallet-context";
+
+function truncate(address: string, head = 4, tail = 4): string {
+  if (address.length <= head + tail + 1) return address;
+  return `${address.slice(0, head)}…${address.slice(-tail)}`;
+}
 
 export interface ConnectWalletButtonProps
   extends React.HTMLAttributes<HTMLDivElement> {}
 
-/**
- * Mounts the Stellar Wallets Kit's own built-in button. That single
- * component already handles both states — clicking it opens the auth
- * modal (picker: Freighter / LOBSTR, per the two modules configured in
- * WalletProvider) when disconnected, or the profile modal (shows the
- * address, has its own Disconnect action) when connected.
- *
- * This is a deliberate choice over a hand-built connect/disconnect UI:
- * the kit does not document a standalone disconnect() method anywhere
- * (only "the disconnect button in the profile modal"), so routing both
- * actions through the kit's own button is the only way to satisfy the
- * disconnect acceptance criterion without guessing at an undocumented
- * API for wallet-signing code.
- *
- * `ButtonMode.free` strips the kit's own styling so it can be styled
- * with plain Tailwind classes instead — verify the visual result once
- * this actually runs, since it hasn't been rendered anywhere yet.
- */
 export function ConnectWalletButton({ className, ...props }: ConnectWalletButtonProps) {
-  const { kitReady } = useWallet();
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const mountedRef = React.useRef(false);
+  const { publicKey, isSignedIn, isConnecting, isSigningIn, connect, disconnect } = useWallet();
+  const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (!kitReady || !wrapperRef.current || mountedRef.current) return;
-    mountedRef.current = true;
+  const handleConnect = React.useCallback(async () => {
+    setError(null);
+    try {
+      await connect();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to connect wallet";
+      setError(message);
+    }
+  }, [connect]);
 
-    StellarWalletsKit.createButton(wrapperRef.current, {
-      mode: ButtonMode.free,
-      classes:
-        "flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-    });
-  }, [kitReady]);
+  if (publicKey) {
+    return (
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs shadow-sm",
+          className
+        )}
+        {...props}
+      >
+        <Wallet className="size-3.5 text-primary" aria-hidden />
+        <code className="font-mono text-foreground" title={publicKey}>
+          {truncate(publicKey)}
+        </code>
+        {/* LOBSTR connects without a server session — see wallet-context.tsx.
+            Surface that distinction rather than implying full sign-in. */}
+        {!isSignedIn && (
+          <span className="text-[0.65rem] text-muted-foreground">connected</span>
+        )}
+        <button
+          type="button"
+          onClick={disconnect}
+          aria-label="Disconnect wallet"
+          className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <LogOut className="size-3" aria-hidden />
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={wrapperRef}
-      className={cn("flex flex-col items-end gap-1", className)}
-      {...props}
-    />
+    <div className={cn("flex flex-col items-end gap-1", className)} {...props}>
+      <button
+        type="button"
+        onClick={handleConnect}
+        disabled={isConnecting}
+        className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <Wallet className="size-3.5" aria-hidden />
+        {isSigningIn ? "Signing in…" : isConnecting ? "Connecting…" : "Connect wallet"}
+      </button>
+      {error ? (
+        <p role="alert" className="max-w-xs text-right text-[0.65rem] text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </div>
   );
 }
